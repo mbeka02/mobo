@@ -6,11 +6,12 @@ start_time TIMESTAMPTZ NOT NULL,
 end_time TIMESTAMPTZ NOT NULL,
 available_seats INTEGER NOT NULL,
 price_per_seat NUMERIC(10,2) NOT NULL,
-venue_id INT NOT NULL REFERENCES venues(id)
+venue_id INT NOT NULL REFERENCES venues(id),
 created_at TIMESTAMPTZ NOT NULL DEFAULT (now()),
 updated_at TIMESTAMPTZ DEFAULT (now()),
 deleted_at TIMESTAMPTZ
 );
+CREATE INDEX idx_showtimes_venue_id ON showtimes (venue_id);
 CREATE INDEX idx_showtimes_movie_id ON showtimes(movie_id);
 ALTER TABLE showtimes ADD CONSTRAINT chk_showtime_times 
     CHECK (end_time > start_time);

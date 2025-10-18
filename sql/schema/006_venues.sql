@@ -5,8 +5,9 @@ CREATE TABLE IF NOT EXISTS venues(
     address VARCHAR NOT NULL,
     city VARCHAR NOT NULL,
     total_seats INTEGER NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT (now())
-    deleted_at TIMESTAMPTZ,
+    created_at timestamptz NOT NULL DEFAULT (now()),
+    updated_at timestamptz DEFAULT (now()),
+    deleted_at TIMESTAMPTZ
   );
 CREATE INDEX idx_venues_city ON venues(city);
 -- +goose Down

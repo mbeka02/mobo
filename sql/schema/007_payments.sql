@@ -9,9 +9,9 @@ CREATE TABLE IF NOT EXISTS payments(
     transaction_id VARCHAR, 
     paid_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT (now()),
-    updated_at TIMESTAMPTZ DEFAULT (now())
-    deleted_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ DEFAULT (now()),
+    deleted_at TIMESTAMPTZ
   );
-
+CREATE INDEX idx_payments_reservation_id ON payments(reservation_id);
 -- +goose Down 
 DROP TABLE payments;

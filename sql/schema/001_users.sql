@@ -11,8 +11,8 @@ created_at timestamptz NOT NULL DEFAULT (now()),
 updated_at timestamptz DEFAULT (now()),
 verified_at timestamptz,
 deleted_at timestamptz
-)
-CREATE UNIQUE INDEX idx_users_email ON users(email)
+);
+CREATE UNIQUE INDEX idx_users_email ON users(email);
 
 -- +goose Down 
 DROP TABLE users;

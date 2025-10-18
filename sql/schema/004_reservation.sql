@@ -9,8 +9,8 @@ CREATE TABLE reservations(
     reserved_at TIMESTAMPTZ NOT NULL DEFAULT (now()),
     expires_at TIMESTAMPTZ, --reservation expires in 10 minutes if not paid for
     confirmed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT (now())
-    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (now()),
+    deleted_at TIMESTAMPTZ
   );
 CREATE INDEX idx_reservations_user_id ON reservations(user_id);
 CREATE INDEX idx_reservations_showtime_id ON reservations(showtime_id);
