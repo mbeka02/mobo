@@ -37,7 +37,8 @@ func setupServer() (*http.Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup server(%w)", err)
 	}
-	auth.NewAuth()
+	callbackURL := fmt.Sprintf("http://localhost%s/api/v1/auth/google/callback", cfg.ServerPort)
+	auth.NewAuth(callbackURL)
 	log.Printf("Completed server setup , starting server on port %s (env: %s)", cfg.ServerPort, cfg.ServerEnv)
 	return srv, nil
 }
