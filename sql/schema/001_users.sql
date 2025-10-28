@@ -1,15 +1,14 @@
 -- +goose Up 
-CREATE EXTENSION IF NOT EXISTS pg_uuidv7;
 CREATE TABLE IF NOT EXISTS users(
-id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+id UUID PRIMARY KEY DEFAULT uuidv7(),
 email varchar(256) UNIQUE NOT NULL,
-telephone_number varchar(16) NOT NULL,
+telephone_number varchar(16),
 password_hash varchar,
 auth_provider varchar(50) DEFAULT 'local',
 provider_user_id varchar(256),  
 full_name varchar(256) NOT NULL,
-profile_image_url varchar DEFAULT '',
-user_name varchar(30) DEFAULT '',
+profile_image_url varchar,
+user_name varchar(30),
 created_at timestamptz NOT NULL DEFAULT (now()),
 updated_at timestamptz DEFAULT (now()),
 verified_at timestamptz,
