@@ -26,7 +26,7 @@ RETURNING id, email, telephone_number, password_hash, auth_provider, provider_us
 
 type CreateLocalUserParams struct {
 	Email           string  `json:"email"`
-	TelephoneNumber string  `json:"telephone_number"`
+	TelephoneNumber *string `json:"telephone_number"`
 	PasswordHash    *string `json:"password_hash"`
 	FullName        string  `json:"full_name"`
 }
@@ -116,7 +116,7 @@ WHERE email = $1 AND deleted_at IS NULL
 type GetUserByEmailRow struct {
 	ID              uuid.UUID          `json:"id"`
 	Email           string             `json:"email"`
-	TelephoneNumber string             `json:"telephone_number"`
+	TelephoneNumber *string            `json:"telephone_number"`
 	FullName        string             `json:"full_name"`
 	ProfileImageUrl *string            `json:"profile_image_url"`
 	UserName        *string            `json:"user_name"`
@@ -163,7 +163,7 @@ type GetUserByProviderParams struct {
 type GetUserByProviderRow struct {
 	ID              uuid.UUID          `json:"id"`
 	Email           string             `json:"email"`
-	TelephoneNumber string             `json:"telephone_number"`
+	TelephoneNumber *string            `json:"telephone_number"`
 	FullName        string             `json:"full_name"`
 	ProfileImageUrl *string            `json:"profile_image_url"`
 	UserName        *string            `json:"user_name"`

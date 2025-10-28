@@ -81,7 +81,7 @@ type Showtime struct {
 type User struct {
 	ID              uuid.UUID          `json:"id"`
 	Email           string             `json:"email"`
-	TelephoneNumber string             `json:"telephone_number"`
+	TelephoneNumber *string            `json:"telephone_number"`
 	PasswordHash    *string            `json:"password_hash"`
 	AuthProvider    *string            `json:"auth_provider"`
 	ProviderUserID  *string            `json:"provider_user_id"`
