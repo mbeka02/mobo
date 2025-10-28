@@ -14,7 +14,7 @@ import (
 )
 
 type Handlers struct {
-	Auth handler.AuthHandler
+	Auth *handler.AuthHandler
 }
 type Services struct {
 	Auth service.AuthService
@@ -26,24 +26,24 @@ type Repositories struct {
 type Server struct {
 	store    *database.Store
 	config   *config.Config
-	handlers Handlers
+	handlers *Handlers
 }
 
-func initRepositories(store *database.Store) Repositories {
-	return Repositories{
+func initRepositories(store *database.Store) *Repositories {
+	return &Repositories{
 		Auth: repository.NewAuthRepository(store),
 	}
 }
 
-func initServices(repos Repositories) Services {
-	return Services{
+func initServices(repos *Repositories) *Services {
+	return &Services{
 		Auth: service.NewAuthService(repos.Auth),
 	}
 }
 
-func initHandlers(services Services) Handlers {
-	return Handlers{
-		Auth: *handler.NewAuthHandler(services.Auth),
+func initHandlers(services *Services) *Handlers {
+	return &Handlers{
+		Auth: handler.NewAuthHandler(services.Auth),
 	}
 }
 
