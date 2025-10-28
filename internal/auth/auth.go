@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/gorilla/sessions"
@@ -16,7 +17,7 @@ var (
 	SESSION_SECRET       = os.Getenv("SESSION_SECRET")
 )
 
-func NewAuth() {
+func NewAuth(callbackURL string) {
 	maxAge := 86400 * 30 // 30 days
 	isProd := false      // Set to true when serving over https
 
@@ -25,9 +26,9 @@ func NewAuth() {
 	store.Options.Path = "/"
 	store.Options.HttpOnly = true // HttpOnly should always be enabled
 	store.Options.Secure = isProd
-
+	store.Options.SameSite = http.SameSiteLaxMode
 	gothic.Store = store
 	goth.UseProviders(
-		google.New(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, "http://localhost:3000/auth/google/callback"),
+		google.New(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, callbackURL, "email", "profile"),
 	)
 }
