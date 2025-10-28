@@ -36,6 +36,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/", s.testHandler)
 		// Health Check
 		r.Get("/health", s.healthHandler)
+		// Auth
+		r.Get("/auth/{provider}/callback", s.handlers.Auth.GetAuthCallbackHandler)
 	})
 
 	return r
