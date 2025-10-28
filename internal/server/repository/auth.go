@@ -68,7 +68,7 @@ func (r *authRepository) CreateLocalUser(ctx context.Context, user CreateLocalUs
 		Email:           user.Email,
 		FullName:        user.FullName,
 		PasswordHash:    &user.PasswordHash,
-		TelephoneNumber: user.TelephoneNumber,
+		TelephoneNumber: &user.TelephoneNumber,
 	})
 	if err != nil {
 		return nil, err

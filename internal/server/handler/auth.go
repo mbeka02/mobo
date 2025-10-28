@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi"
 	"github.com/markbates/goth/gothic"
 	"github.com/mbeka02/ticketing-service/internal/server/service"
 )
@@ -17,10 +17,21 @@ func NewAuthHandler(service service.AuthService) *AuthHandler {
 	return &AuthHandler{service}
 }
 
+func (h *AuthHandler) BeginAuthHandler(w http.ResponseWriter, r *http.Request) {
+	provider := chi.URLParam(r, "provider")
+	if provider == "" {
+		http.Error(w, "Provider is required", http.StatusBadRequest)
+		return
+	}
+
+	r = r.WithContext(context.WithValue(r.Context(), "provider", provider))
+
+	gothic.BeginAuthHandler(w, r)
+}
+
 func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Request) {
 	provider := chi.URLParam(r, "provider")
 	if provider == "" {
-
 		http.Redirect(w, r, "http://localhost:5173/login?error=invalid_provider", http.StatusFound)
 		return
 	}

@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v5"
 	"github.com/mbeka02/ticketing-service/internal/model"
 	"github.com/mbeka02/ticketing-service/internal/server/repository"
 )
@@ -39,22 +40,23 @@ func (s *authService) CreateOrLoginOAuthUser(ctx context.Context, data OAuthUser
 	if err == nil {
 		return existingUser, nil
 	}
-	if err != pgx.ErrNoRows {
-		return nil, fmt.Errorf("error checking existing user: (%w)", err)
+	if errors.Is(err, pgx.ErrNoRows) {
+		fullName := fmt.Sprintf("%s %s", data.FirstName, data.LastName)
+
+		newUser, createErr := s.repo.CreateOAuthUser(ctx, repository.CreateOAuthUserParams{
+			Email:           data.Email,
+			FullName:        fullName,
+			AuthProvider:    data.Provider,
+			ProviderUserId:  data.ProviderUserID,
+			ProfileImageUrl: data.AvatarURL,
+		})
+		if createErr != nil {
+			return nil, fmt.Errorf("error creating oauth user: (%w)", createErr)
+		}
+
+		return newUser, nil
+
 	}
-
-	fullName := fmt.Sprintf("%s %s", data.FirstName, data.LastName)
-
-	newUser, err := s.repo.CreateOAuthUser(ctx, repository.CreateOAuthUserParams{
-		Email:           data.Email,
-		FullName:        fullName,
-		AuthProvider:    data.Provider,
-		ProviderUserId:  data.ProviderUserID,
-		ProfileImageUrl: data.AvatarURL,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating oauth user: (%w)", err)
-	}
-
-	return newUser, nil
+	// unexpected error when checking if user exists
+	return nil, fmt.Errorf("error checking existing user: (%w)", err)
 }

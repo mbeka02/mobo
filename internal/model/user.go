@@ -10,7 +10,7 @@ import (
 type User struct {
 	ID              uuid.UUID
 	Email           string
-	TelephoneNumber string
+	TelephoneNumber *string
 	FullName        string
 	ProfileImageURL *string
 	UserName        *string
@@ -85,7 +85,7 @@ type UserResponse struct {
 	UserId          string    `json:"user_id"`
 	Fullname        string    `json:"full_name"`
 	Email           string    `json:"email"`
-	TelephoneNumber string    `json:"telephone_number"`
+	TelephoneNumber *string   `json:"telephone_number"`
 	ProfileImageURL *string   `json:"profile_image_url"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
