@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,6 +14,7 @@ import (
 
 type Store struct {
 	db *pgxpool.Pool
+	*Queries
 }
 
 var (
@@ -40,7 +43,7 @@ func NewStore(ctx context.Context, cfg config.DatabaseConfig) (*Store, error) {
 			return
 		}
 
-		storeInstance = &Store{db: pool}
+		storeInstance = &Store{db: pool, Queries: New(pool)}
 	})
 
 	return storeInstance, storeErr
@@ -54,4 +57,53 @@ func (s *Store) Close() {
 	if s.db != nil {
 		s.db.Close()
 	}
+}
+
+// Health checks the health of the database connection by pinging the database.
+// It returns a map with keys indicating various health statistics.
+func (s *Store) Health() map[string]string {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	stats := make(map[string]string)
+
+	err := s.db.Ping(ctx)
+	if err != nil {
+		stats["status"] = "down"
+		stats["error"] = fmt.Sprintf("db down: %v", err)
+		log.Fatalf("db down: %v", err) // Log the error and terminate the program
+		return stats
+	}
+
+	stats["status"] = "up"
+	stats["message"] = "It's healthy"
+
+	poolStats := s.db.Stat()
+
+	stats["acquire_count"] = strconv.FormatInt(poolStats.AcquireCount(), 10)
+	stats["acquired_conns"] = strconv.Itoa(int(poolStats.AcquiredConns()))
+	stats["canceled_acquire_count"] = strconv.FormatInt(poolStats.CanceledAcquireCount(), 10)
+	stats["constructing_conns"] = strconv.Itoa(int(poolStats.ConstructingConns()))
+	stats["empty_acquire_count"] = strconv.FormatInt(poolStats.EmptyAcquireCount(), 10)
+	stats["idle_conns"] = strconv.Itoa(int(poolStats.IdleConns()))
+	stats["max_conns"] = strconv.Itoa(int(poolStats.MaxConns()))
+	stats["total_conns"] = strconv.Itoa(int(poolStats.TotalConns()))
+
+	if poolStats.AcquiredConns() > int32(float64(poolStats.MaxConns())*0.8) {
+		stats["message"] = "The database is experiencing heavy load."
+	}
+
+	if poolStats.EmptyAcquireCount() > 1000 {
+		stats["message"] = "The database has a high number of empty acquire events, indicating potential bottlenecks."
+	}
+
+	if poolStats.CanceledAcquireCount() > 100 {
+		stats["message"] = "Many connection acquisitions are being canceled, consider increasing pool size or timeout."
+	}
+
+	if poolStats.IdleConns() == 0 && poolStats.AcquiredConns() == poolStats.MaxConns() {
+		stats["message"] = "Connection pool is exhausted, consider increasing max connections."
+	}
+
+	return stats
 }
