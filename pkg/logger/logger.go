@@ -7,9 +7,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// type contextKey string
+type contextKey string
 
-// const requestIDKey contextKey = "request_id"
+const requestIDKey contextKey = "request_id"
 
 var globalLogger *zap.Logger
 
