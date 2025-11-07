@@ -27,6 +27,15 @@ SELECT
 FROM users 
 WHERE email = $1 AND deleted_at IS NULL;
 
+-- name: GetUserById :one
+SELECT 
+    id, email, telephone_number, full_name, 
+    profile_image_url, user_name, auth_provider,
+    created_at, updated_at, verified_at 
+FROM users 
+WHERE id = $1 AND deleted_at IS NULL;
+
+
 -- name: GetUserByProvider :one
 SELECT 
     id, email, telephone_number, full_name, 
