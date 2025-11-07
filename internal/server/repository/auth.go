@@ -5,6 +5,8 @@ import (
 
 	"github.com/mbeka02/ticketing-service/internal/database"
 	"github.com/mbeka02/ticketing-service/internal/model"
+	"github.com/mbeka02/ticketing-service/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type CreateLocalUserParams struct {
@@ -42,14 +44,18 @@ func (r *authRepository) GetUserByProvider(ctx context.Context, provider, provid
 		ProviderUserID: &providerUserID,
 	})
 	if err != nil {
+		logger.DebugCtx(ctx, "user not found by provider",
+			zap.Error(err),
+			zap.String("provider", provider),
+		)
 		return nil, err
 	}
 
 	return model.FromGetUserByProviderRow(&row), nil
 }
 
-func (r *authRepository) CreateOAuthUser(ctx context.Context, user CreateOAuthUserParams) (*model.User, error) {
-	dbUser, err := r.store.CreateOAuthUser(ctx, database.CreateOAuthUserParams{
+func (ar *authRepository) CreateOAuthUser(ctx context.Context, user CreateOAuthUserParams) (*model.User, error) {
+	dbUser, err := ar.store.CreateOAuthUser(ctx, database.CreateOAuthUserParams{
 		Email:           user.Email,
 		FullName:        user.FullName,
 		AuthProvider:    &user.AuthProvider,
@@ -57,22 +63,30 @@ func (r *authRepository) CreateOAuthUser(ctx context.Context, user CreateOAuthUs
 		ProfileImageUrl: &user.ProfileImageUrl,
 	})
 	if err != nil {
+		logger.ErrorCtx(ctx, "failed to create OAuth user in database",
+			zap.Error(err),
+			zap.String("email", user.Email),
+			zap.String("provider", user.AuthProvider),
+		)
 		return nil, err
 	}
 
 	return model.FromDatabaseUser(&dbUser), nil
 }
 
-func (r *authRepository) CreateLocalUser(ctx context.Context, user CreateLocalUserParams) (*model.User, error) {
-	dbUser, err := r.store.CreateLocalUser(ctx, database.CreateLocalUserParams{
+func (ar *authRepository) CreateLocalUser(ctx context.Context, user CreateLocalUserParams) (*model.User, error) {
+	dbUser, err := ar.store.CreateLocalUser(ctx, database.CreateLocalUserParams{
 		Email:           user.Email,
 		FullName:        user.FullName,
 		PasswordHash:    &user.PasswordHash,
 		TelephoneNumber: &user.TelephoneNumber,
 	})
 	if err != nil {
+		logger.ErrorCtx(ctx, "failed to create local user in database",
+			zap.Error(err),
+			zap.String("email", user.Email),
+		)
 		return nil, err
 	}
-
 	return model.FromDatabaseUser(&dbUser), nil
 }

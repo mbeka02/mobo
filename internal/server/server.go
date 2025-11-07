@@ -11,11 +11,14 @@ import (
 	"github.com/mbeka02/ticketing-service/internal/server/handler"
 	"github.com/mbeka02/ticketing-service/internal/server/repository"
 	"github.com/mbeka02/ticketing-service/internal/server/service"
+	"github.com/mbeka02/ticketing-service/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type Handlers struct {
 	Auth *handler.AuthHandler
 }
+
 type Services struct {
 	Auth service.AuthService
 }
@@ -23,6 +26,7 @@ type Services struct {
 type Repositories struct {
 	Auth repository.AuthRepository
 }
+
 type Server struct {
 	store    *database.Store
 	config   *config.Config
@@ -48,22 +52,33 @@ func initHandlers(services *Services) *Handlers {
 }
 
 func NewServer(cfg *config.Config) (*http.Server, error) {
+	logger.Info("initializing server")
+
 	// Create database store with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	logger.Info("connecting to database")
+
 	store, err := database.NewStore(ctx, cfg.GetDatabaseConfig())
 	if err != nil {
+		logger.Error("failed to initialize database", zap.Error(err))
 		return nil, fmt.Errorf("failed to initialize database: %w", err)
 	}
 
 	// Test database connection
+	logger.Debug("pinging database")
 	if err := store.Ping(ctx); err != nil {
+		logger.Error("failed to ping database", zap.Error(err))
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
+
+	logger.Info("database connection established successfully")
+
 	repos := initRepositories(store)
 	services := initServices(repos)
 	handlers := initHandlers(services)
+
 	srv := &Server{
 		store:    store,
 		config:   cfg,

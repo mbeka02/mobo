@@ -35,6 +35,36 @@ func FromDatabaseUser(dbUser *database.User) *User {
 	}
 }
 
+func FromGetUserByEmailRow(row *database.GetUserByEmailRow) *User {
+	return &User{
+		ID:              row.ID,
+		Email:           row.Email,
+		TelephoneNumber: row.TelephoneNumber,
+		FullName:        row.FullName,
+		ProfileImageURL: row.ProfileImageUrl,
+		UserName:        row.UserName,
+		AuthProvider:    row.AuthProvider,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       &row.UpdatedAt.Time,
+		VerifiedAt:      &row.VerifiedAt.Time,
+	}
+}
+
+func FromGetUserByID(row *database.GetUserByIdRow) *User {
+	return &User{
+		ID:              row.ID,
+		Email:           row.Email,
+		TelephoneNumber: row.TelephoneNumber,
+		FullName:        row.FullName,
+		ProfileImageURL: row.ProfileImageUrl,
+		UserName:        row.UserName,
+		AuthProvider:    row.AuthProvider,
+		CreatedAt:       row.CreatedAt,
+		UpdatedAt:       &row.UpdatedAt.Time,
+		VerifiedAt:      &row.VerifiedAt.Time,
+	}
+}
+
 func FromGetUserByProviderRow(row *database.GetUserByProviderRow) *User {
 	return &User{
 		ID:              row.ID,
@@ -94,5 +124,5 @@ type UserResponse struct {
 
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
+	Password string `json:"password" validate:"required"`
 }

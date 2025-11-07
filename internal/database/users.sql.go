@@ -144,6 +144,46 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 	return i, err
 }
 
+const getUserById = `-- name: GetUserById :one
+SELECT 
+    id, email, telephone_number, full_name, 
+    profile_image_url, user_name, auth_provider,
+    created_at, updated_at, verified_at 
+FROM users 
+WHERE id = $1 AND deleted_at IS NULL
+`
+
+type GetUserByIdRow struct {
+	ID              uuid.UUID          `json:"id"`
+	Email           string             `json:"email"`
+	TelephoneNumber *string            `json:"telephone_number"`
+	FullName        string             `json:"full_name"`
+	ProfileImageUrl *string            `json:"profile_image_url"`
+	UserName        *string            `json:"user_name"`
+	AuthProvider    *string            `json:"auth_provider"`
+	CreatedAt       time.Time          `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
+}
+
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow, error) {
+	row := q.db.QueryRow(ctx, getUserById, id)
+	var i GetUserByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.TelephoneNumber,
+		&i.FullName,
+		&i.ProfileImageUrl,
+		&i.UserName,
+		&i.AuthProvider,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VerifiedAt,
+	)
+	return i, err
+}
+
 const getUserByProvider = `-- name: GetUserByProvider :one
 SELECT 
     id, email, telephone_number, full_name, 

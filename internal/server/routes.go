@@ -9,13 +9,32 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 	"github.com/go-chi/httprate"
+	customMiddleware "github.com/mbeka02/ticketing-service/internal/server/middleware"
+	"github.com/mbeka02/ticketing-service/pkg/logger"
+	"go.uber.org/zap"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// Apply global middleware
+	// Apply global middleware (order matters!)
+
+	// 1. Recoverer should be first to catch panics from all other middleware
+	r.Use(middleware.Recoverer)
+
+	// 2. RealIP extracts real client IP
+	r.Use(middleware.RealIP)
+
+	// 3. Custom request ID middleware (integrates with your logger)
+	r.Use(customMiddleware.RequestIDMiddleware)
+
+	// 4. Your custom logging middleware (uses the request ID from step 3)
+	r.Use(customMiddleware.LoggingMiddleware)
+
+	// 5. Rate limiting
 	r.Use(httprate.LimitByIP(100, time.Minute))
+
+	// 6. CORS
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
@@ -24,14 +43,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
-	// logs requests
-	r.Use(middleware.Logger)
-	// catches panics in the handlers and returns a 500 instead of crashing the server
-	r.Use(middleware.Recoverer)
-	// extracts the real client IP from the headers even when behind a proxy
-	r.Use(middleware.RealIP)
-	// add a unique request ID for each request
-	r.Use(middleware.RequestID)
+
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/", s.testHandler)
 		// Health Check
@@ -53,8 +65,18 @@ func (s *Server) testHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	logger.DebugCtx(ctx, "health check requested")
+
 	stats := s.store.Health()
+
+	logger.InfoCtx(ctx, "health check completed",
+		zap.Any("stats", stats),
+	)
+
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(stats)
 }
+
