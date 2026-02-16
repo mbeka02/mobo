@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"strings"
+	"os"
 	"time"
 
 	"github.com/spf13/viper"
@@ -23,7 +23,6 @@ type Config struct {
 	DatabaseMaxConnLifetime time.Duration `mapstructure:"DATABASE_MAXCONNLIFETIME"`
 }
 
-// DatabaseConfig is a helper type for passing database configuration
 type DatabaseConfig struct {
 	URI             string
 	MaxConnections  int
@@ -31,7 +30,6 @@ type DatabaseConfig struct {
 	MaxConnLifetime time.Duration
 }
 
-// GetDatabaseConfig extracts database config from the main config
 func (c *Config) GetDatabaseConfig() DatabaseConfig {
 	return DatabaseConfig{
 		URI:             c.DatabaseURI,
@@ -43,22 +41,15 @@ func (c *Config) GetDatabaseConfig() DatabaseConfig {
 
 func Load() (*Config, error) {
 	v := viper.New()
-
 	setDefaults(v)
 
+	// Try to load .env file (optional in production)
 	v.SetConfigFile(".env")
 	v.SetConfigType("env")
+	_ = v.ReadInConfig()
 
-	if err := v.ReadInConfig(); err != nil {
-		// Only error if file exists but can't be read
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, fmt.Errorf("error reading config file: %w", err)
-		}
-	}
-
-	// Bind environment variables
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	v.AutomaticEnv()
+	// Explicitly bind environment variables
+	bindEnvVars(v)
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -77,6 +68,27 @@ func Load() (*Config, error) {
 	return &cfg, nil
 }
 
+func bindEnvVars(v *viper.Viper) {
+	// Server vars
+	envVars := []string{
+		"SERVER_PORT",
+		"SERVER_ENV",
+		"SERVER_READTIMEOUT",
+		"SERVER_WRITETIMEOUT",
+		"SERVER_IDLETIMEOUT",
+		"DATABASE_URI",
+		"DATABASE_MAXCONNECTIONS",
+		"DATABASE_MINCONNECTIONS",
+		"DATABASE_MAXCONNLIFETIME",
+	}
+
+	for _, envVar := range envVars {
+		if val := os.Getenv(envVar); val != "" {
+			v.Set(envVar, val)
+		}
+	}
+}
+
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("SERVER_PORT", "3000")
@@ -92,19 +104,30 @@ func setDefaults(v *viper.Viper) {
 }
 
 func (c *Config) Validate() error {
-	// Validate required fields
+	// Required fields
 	if c.DatabaseURI == "" {
-		return fmt.Errorf("database.uri (DB_URI) is required but not set")
+		return fmt.Errorf("DATABASE_URI is required but not set")
 	}
 
-	// Validate constraints
+	// Constraints
 	if c.DatabaseMaxConnections < c.DatabaseMinConnections {
-		return fmt.Errorf("database.maxconnections must be >= database.minconnections")
+		return fmt.Errorf("DATABASE_MAXCONNECTIONS must be >= DATABASE_MINCONNECTIONS")
 	}
 
 	if c.DatabaseMaxConnections < 1 {
-		return fmt.Errorf("database.maxconnections must be at least 1")
+		return fmt.Errorf("DATABASE_MAXCONNECTIONS must be at least 1")
+	}
+
+	// Validate environment
+	validEnvs := map[string]bool{"development": true, "staging": true, "production": true}
+	if !validEnvs[c.ServerEnv] {
+		return fmt.Errorf("SERVER_ENV must be one of: development, staging, production")
 	}
 
 	return nil
+}
+
+// IsProduction returns true if running in production
+func (c *Config) IsProduction() bool {
+	return c.ServerEnv == "production"
 }
