@@ -17,18 +17,16 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// Apply global middleware (order matters!)
-
 	// 1. Recoverer should be first to catch panics from all other middleware
 	r.Use(middleware.Recoverer)
 
-	// 2. RealIP extracts real client IP
+	// RealIP extracts real client IP
 	r.Use(middleware.RealIP)
 
-	// 3. Custom request ID middleware (integrates with your logger)
+	// Request ID middleware
 	r.Use(customMiddleware.RequestIDMiddleware)
 
-	// 4. Your custom logging middleware (uses the request ID from step 3)
+	// Logging middleware (uses the request ID from step 3)
 	r.Use(customMiddleware.LoggingMiddleware)
 
 	// 5. Rate limiting
@@ -79,4 +77,3 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(stats)
 }
-
