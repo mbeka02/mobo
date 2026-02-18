@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
-      - name: Test with the Go CLI
+      - name: Run tests using the Go CLI
         run: go test ./...
 
       - name: Build Step
