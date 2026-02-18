@@ -14,8 +14,7 @@ RELEASES_DIR="/home/ubuntu/releases"
 DEPLOY_BIN="/home/ubuntu/production/mobo"
 SERVICE_NAME="mobo"
 BINARY_NAME="mobo-${COMMIT_HASH}"
-# todo: add more ports later
-declare -a PORTS=("3000")
+declare -a PORTS=("3000","3001","3002")
 
 # Check if the binary exists
 if [ ! -f "${RELEASES_DIR}/${BINARY_NAME}" ]; then
