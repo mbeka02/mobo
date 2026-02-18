@@ -26,7 +26,7 @@ jobs:
         run: go test ./...
 
       - name: Build Step
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build cmd/server/main.go -o mobo-${GITHUB_SHA}
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build ./cmd/server/main.go -o mobo-${GITHUB_SHA}
 
       - name: Deploy binary using SCP
         env:
