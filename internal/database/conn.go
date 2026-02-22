@@ -59,6 +59,24 @@ func (s *Store) Close() {
 	}
 }
 
+// ExecTx executes queries within a db transaction
+func (s *Store) ExecTx(ctx context.Context, fn func(*Queries) error) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	q := s.Queries.WithTx(tx)
+	err = fn(q)
+	if err != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return fmt.Errorf("transaction error: %v, rollback error: %v", err, rbErr)
+		}
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
 // Health checks the health of the database connection by pinging the database.
 // It returns a map with keys indicating various health statistics.
 func (s *Store) Health() map[string]string {

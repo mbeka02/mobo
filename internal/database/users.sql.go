@@ -7,7 +7,6 @@ package database
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -18,10 +17,10 @@ INSERT INTO users(
     email, 
     telephone_number, 
     password_hash, 
-    full_name, 
-    auth_provider
-) VALUES($1, $2, $3, $4, 'local') 
-RETURNING id, email, telephone_number, password_hash, auth_provider, provider_user_id, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+    full_name,
+    verified_at
+) VALUES($1, $2, $3, $4, NULL) 
+RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
 `
 
 type CreateLocalUserParams struct {
@@ -44,8 +43,6 @@ func (q *Queries) CreateLocalUser(ctx context.Context, arg CreateLocalUserParams
 		&i.Email,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
-		&i.AuthProvider,
-		&i.ProviderUserID,
 		&i.FullName,
 		&i.ProfileImageUrl,
 		&i.UserName,
@@ -57,33 +54,29 @@ func (q *Queries) CreateLocalUser(ctx context.Context, arg CreateLocalUserParams
 	return i, err
 }
 
-const createOAuthUser = `-- name: CreateOAuthUser :one
+const createUser = `-- name: CreateUser :one
 INSERT INTO users(
     email, 
     full_name, 
-    auth_provider, 
-    provider_user_id,
     profile_image_url,
-    verified_at  -- OAuth users are pre-verified by the provider
-) VALUES($1, $2, $3, $4, $5, now()) 
-RETURNING id, email, telephone_number, password_hash, auth_provider, provider_user_id, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+    verified_at
+) VALUES($1, $2, $3, $4) 
+RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
 `
 
-type CreateOAuthUserParams struct {
-	Email           string  `json:"email"`
-	FullName        string  `json:"full_name"`
-	AuthProvider    *string `json:"auth_provider"`
-	ProviderUserID  *string `json:"provider_user_id"`
-	ProfileImageUrl *string `json:"profile_image_url"`
+type CreateUserParams struct {
+	Email           string             `json:"email"`
+	FullName        string             `json:"full_name"`
+	ProfileImageUrl *string            `json:"profile_image_url"`
+	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
 }
 
-func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createOAuthUser,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
 		arg.Email,
 		arg.FullName,
-		arg.AuthProvider,
-		arg.ProviderUserID,
 		arg.ProfileImageUrl,
+		arg.VerifiedAt,
 	)
 	var i User
 	err := row.Scan(
@@ -91,8 +84,6 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 		&i.Email,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
-		&i.AuthProvider,
-		&i.ProviderUserID,
 		&i.FullName,
 		&i.ProfileImageUrl,
 		&i.UserName,
@@ -104,129 +95,167 @@ func (q *Queries) CreateOAuthUser(ctx context.Context, arg CreateOAuthUserParams
 	return i, err
 }
 
+const getIdentityByProvider = `-- name: GetIdentityByProvider :one
+SELECT id, user_id, provider, provider_user_id, created_at FROM user_identities 
+WHERE provider = $1 
+  AND provider_user_id = $2
+`
+
+type GetIdentityByProviderParams struct {
+	Provider       string `json:"provider"`
+	ProviderUserID string `json:"provider_user_id"`
+}
+
+func (q *Queries) GetIdentityByProvider(ctx context.Context, arg GetIdentityByProviderParams) (UserIdentity, error) {
+	row := q.db.QueryRow(ctx, getIdentityByProvider, arg.Provider, arg.ProviderUserID)
+	var i UserIdentity
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderUserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT 
-    id, email, telephone_number, full_name, 
-    profile_image_url, user_name, auth_provider,
-    created_at, updated_at, verified_at 
-FROM users 
+SELECT id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
 WHERE email = $1 AND deleted_at IS NULL
 `
 
-type GetUserByEmailRow struct {
-	ID              uuid.UUID          `json:"id"`
-	Email           string             `json:"email"`
-	TelephoneNumber *string            `json:"telephone_number"`
-	FullName        string             `json:"full_name"`
-	ProfileImageUrl *string            `json:"profile_image_url"`
-	UserName        *string            `json:"user_name"`
-	AuthProvider    *string            `json:"auth_provider"`
-	CreatedAt       time.Time          `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
-}
-
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
-	var i GetUserByEmailRow
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.TelephoneNumber,
+		&i.PasswordHash,
 		&i.FullName,
 		&i.ProfileImageUrl,
 		&i.UserName,
-		&i.AuthProvider,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerifiedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT 
-    id, email, telephone_number, full_name, 
-    profile_image_url, user_name, auth_provider,
-    created_at, updated_at, verified_at 
-FROM users 
+SELECT id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
 WHERE id = $1 AND deleted_at IS NULL
 `
 
-type GetUserByIdRow struct {
-	ID              uuid.UUID          `json:"id"`
-	Email           string             `json:"email"`
-	TelephoneNumber *string            `json:"telephone_number"`
-	FullName        string             `json:"full_name"`
-	ProfileImageUrl *string            `json:"profile_image_url"`
-	UserName        *string            `json:"user_name"`
-	AuthProvider    *string            `json:"auth_provider"`
-	CreatedAt       time.Time          `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
-}
-
-func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (GetUserByIdRow, error) {
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	row := q.db.QueryRow(ctx, getUserById, id)
-	var i GetUserByIdRow
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.TelephoneNumber,
+		&i.PasswordHash,
 		&i.FullName,
 		&i.ProfileImageUrl,
 		&i.UserName,
-		&i.AuthProvider,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerifiedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getUserByProvider = `-- name: GetUserByProvider :one
-SELECT 
-    id, email, telephone_number, full_name, 
-    profile_image_url, user_name, auth_provider,
-    created_at, updated_at, verified_at 
-FROM users 
-WHERE auth_provider = $1 
-  AND provider_user_id = $2 
-  AND deleted_at IS NULL
+SELECT u.id, u.email, u.telephone_number, u.password_hash, u.full_name, u.profile_image_url, u.user_name, u.created_at, u.updated_at, u.verified_at, u.deleted_at 
+FROM users u
+JOIN user_identities ui ON u.id = ui.user_id
+WHERE ui.provider = $1 
+  AND ui.provider_user_id = $2 
+  AND u.deleted_at IS NULL
 `
 
 type GetUserByProviderParams struct {
-	AuthProvider   *string `json:"auth_provider"`
-	ProviderUserID *string `json:"provider_user_id"`
+	Provider       string `json:"provider"`
+	ProviderUserID string `json:"provider_user_id"`
 }
 
-type GetUserByProviderRow struct {
-	ID              uuid.UUID          `json:"id"`
-	Email           string             `json:"email"`
-	TelephoneNumber *string            `json:"telephone_number"`
-	FullName        string             `json:"full_name"`
-	ProfileImageUrl *string            `json:"profile_image_url"`
-	UserName        *string            `json:"user_name"`
-	AuthProvider    *string            `json:"auth_provider"`
-	CreatedAt       time.Time          `json:"created_at"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
-	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
-}
-
-func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (GetUserByProviderRow, error) {
-	row := q.db.QueryRow(ctx, getUserByProvider, arg.AuthProvider, arg.ProviderUserID)
-	var i GetUserByProviderRow
+func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderParams) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByProvider, arg.Provider, arg.ProviderUserID)
+	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
 		&i.TelephoneNumber,
+		&i.PasswordHash,
 		&i.FullName,
 		&i.ProfileImageUrl,
 		&i.UserName,
-		&i.AuthProvider,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.VerifiedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const linkIdentityToUser = `-- name: LinkIdentityToUser :one
+INSERT INTO user_identities (
+    user_id,
+    provider,
+    provider_user_id
+) VALUES ($1, $2, $3)
+RETURNING id, user_id, provider, provider_user_id, created_at
+`
+
+type LinkIdentityToUserParams struct {
+	UserID         uuid.UUID `json:"user_id"`
+	Provider       string    `json:"provider"`
+	ProviderUserID string    `json:"provider_user_id"`
+}
+
+func (q *Queries) LinkIdentityToUser(ctx context.Context, arg LinkIdentityToUserParams) (UserIdentity, error) {
+	row := q.db.QueryRow(ctx, linkIdentityToUser, arg.UserID, arg.Provider, arg.ProviderUserID)
+	var i UserIdentity
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderUserID,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :one
+UPDATE users 
+SET password_hash = $2, 
+    updated_at = now() 
+WHERE id = $1 
+RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+`
+
+type UpdateUserPasswordParams struct {
+	ID           uuid.UUID `json:"id"`
+	PasswordHash *string   `json:"password_hash"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.TelephoneNumber,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.ProfileImageUrl,
+		&i.UserName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VerifiedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
