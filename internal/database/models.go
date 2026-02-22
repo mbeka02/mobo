@@ -83,8 +83,6 @@ type User struct {
 	Email           string             `json:"email"`
 	TelephoneNumber *string            `json:"telephone_number"`
 	PasswordHash    *string            `json:"password_hash"`
-	AuthProvider    *string            `json:"auth_provider"`
-	ProviderUserID  *string            `json:"provider_user_id"`
 	FullName        string             `json:"full_name"`
 	ProfileImageUrl *string            `json:"profile_image_url"`
 	UserName        *string            `json:"user_name"`
@@ -92,6 +90,14 @@ type User struct {
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
 	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type UserIdentity struct {
+	ID             uuid.UUID `json:"id"`
+	UserID         uuid.UUID `json:"user_id"`
+	Provider       string    `json:"provider"`
+	ProviderUserID string    `json:"provider_user_id"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type Venue struct {

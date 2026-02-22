@@ -2,32 +2,29 @@ package repository
 
 import (
 	"context"
+	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mbeka02/ticketing-service/internal/database"
 	"github.com/mbeka02/ticketing-service/internal/model"
-	"github.com/mbeka02/ticketing-service/pkg/logger"
-	"go.uber.org/zap"
 )
 
-type CreateLocalUserParams struct {
+type CreateUserParams struct {
 	Email           string
 	FullName        string
-	PasswordHash    string
-	TelephoneNumber string
-}
-
-type CreateOAuthUserParams struct {
-	Email           string
-	FullName        string
-	AuthProvider    string
-	ProviderUserId  string
 	ProfileImageUrl string
+	VerifiedAt      time.Time
 }
 
 type AuthRepository interface {
-	CreateLocalUser(ctx context.Context, user CreateLocalUserParams) (*model.User, error)
-	CreateOAuthUser(ctx context.Context, user CreateOAuthUserParams) (*model.User, error)
 	GetUserByProvider(ctx context.Context, provider, providerUserID string) (*model.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*model.User, error)
+	CreateUser(ctx context.Context, user CreateUserParams) (*model.User, error)
+	LinkIdentityToUser(ctx context.Context, userID uuid.UUID, provider, providerUserID string) error
+	CreateUserWithIdentity(ctx context.Context, user CreateUserParams, provider, providerUserID string) (*model.User, error)
+	CreateLocalUser(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error)
 }
 
 type authRepository struct {
@@ -39,53 +36,87 @@ func NewAuthRepository(store *database.Store) AuthRepository {
 }
 
 func (r *authRepository) GetUserByProvider(ctx context.Context, provider, providerUserID string) (*model.User, error) {
-	row, err := r.store.GetUserByProvider(ctx, database.GetUserByProviderParams{
-		AuthProvider:   &provider,
-		ProviderUserID: &providerUserID,
+	dbUser, err := r.store.GetUserByProvider(ctx, database.GetUserByProviderParams{
+		Provider:       provider,
+		ProviderUserID: providerUserID,
 	})
 	if err != nil {
-		logger.DebugCtx(ctx, "user not found by provider",
-			zap.Error(err),
-			zap.String("provider", provider),
-		)
 		return nil, err
 	}
 
-	return model.FromGetUserByProviderRow(&row), nil
+	return model.FromGetUserByProviderRow(&dbUser), nil
 }
 
-func (ar *authRepository) CreateOAuthUser(ctx context.Context, user CreateOAuthUserParams) (*model.User, error) {
-	dbUser, err := ar.store.CreateOAuthUser(ctx, database.CreateOAuthUserParams{
-		Email:           user.Email,
-		FullName:        user.FullName,
-		AuthProvider:    &user.AuthProvider,
-		ProviderUserID:  &user.ProviderUserId,
-		ProfileImageUrl: &user.ProfileImageUrl,
-	})
+func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
+	dbUser, err := r.store.GetUserByEmail(ctx, email)
 	if err != nil {
-		logger.ErrorCtx(ctx, "failed to create OAuth user in database",
-			zap.Error(err),
-			zap.String("email", user.Email),
-			zap.String("provider", user.AuthProvider),
-		)
 		return nil, err
 	}
+	return model.FromGetUserByEmailRow(&dbUser), nil
+}
 
+func (r *authRepository) CreateUser(ctx context.Context, user CreateUserParams) (*model.User, error) {
+	dbUser, err := r.store.CreateUser(ctx, database.CreateUserParams{
+		Email:           user.Email,
+		FullName:        user.FullName,
+		ProfileImageUrl: &user.ProfileImageUrl,
+		VerifiedAt:      pgtype.Timestamptz{Time: user.VerifiedAt, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
 	return model.FromDatabaseUser(&dbUser), nil
 }
 
-func (ar *authRepository) CreateLocalUser(ctx context.Context, user CreateLocalUserParams) (*model.User, error) {
-	dbUser, err := ar.store.CreateLocalUser(ctx, database.CreateLocalUserParams{
-		Email:           user.Email,
-		FullName:        user.FullName,
-		PasswordHash:    &user.PasswordHash,
-		TelephoneNumber: &user.TelephoneNumber,
+func (r *authRepository) LinkIdentityToUser(ctx context.Context, userID uuid.UUID, provider, providerUserID string) error {
+	_, err := r.store.LinkIdentityToUser(ctx, database.LinkIdentityToUserParams{
+		UserID:         userID,
+		Provider:       provider,
+		ProviderUserID: providerUserID,
+	})
+	return err
+}
+
+func (r *authRepository) CreateUserWithIdentity(ctx context.Context, user CreateUserParams, provider, providerUserID string) (*model.User, error) {
+	var createdUser *model.User
+	err := r.store.ExecTx(ctx, func(q *database.Queries) error {
+		dbUser, err := q.CreateUser(ctx, database.CreateUserParams{
+			Email:           user.Email,
+			FullName:        user.FullName,
+			ProfileImageUrl: &user.ProfileImageUrl,
+			VerifiedAt:      pgtype.Timestamptz{Time: user.VerifiedAt, Valid: true},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create user in transaction: %w", err)
+		}
+
+		_, err = q.LinkIdentityToUser(ctx, database.LinkIdentityToUserParams{
+			UserID:         dbUser.ID,
+			Provider:       provider,
+			ProviderUserID: providerUserID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to link identity in transaction: %w", err)
+		}
+
+		createdUser = model.FromDatabaseUser(&dbUser)
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+	return createdUser, nil
+}
+
+func (r *authRepository) CreateLocalUser(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error) {
+	dbUser, err := r.store.CreateLocalUser(ctx, database.CreateLocalUserParams{
+		Email:           email,
+		FullName:        fullName,
+		PasswordHash:    &passwordHash,
+		TelephoneNumber: &telephone,
 	})
 	if err != nil {
-		logger.ErrorCtx(ctx, "failed to create local user in database",
-			zap.Error(err),
-			zap.String("email", user.Email),
-		)
 		return nil, err
 	}
 	return model.FromDatabaseUser(&dbUser), nil
