@@ -14,7 +14,6 @@ type User struct {
 	FullName        string
 	ProfileImageURL *string
 	UserName        *string
-	AuthProvider    *string
 	CreatedAt       time.Time
 	UpdatedAt       *time.Time
 	VerifiedAt      *time.Time
@@ -28,14 +27,13 @@ func FromDatabaseUser(dbUser *database.User) *User {
 		FullName:        dbUser.FullName,
 		ProfileImageURL: dbUser.ProfileImageUrl,
 		UserName:        dbUser.UserName,
-		AuthProvider:    dbUser.AuthProvider,
 		CreatedAt:       dbUser.CreatedAt,
 		UpdatedAt:       &dbUser.UpdatedAt.Time,
 		VerifiedAt:      &dbUser.VerifiedAt.Time,
 	}
 }
 
-func FromGetUserByEmailRow(row *database.GetUserByEmailRow) *User {
+func FromGetUserByEmailRow(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
@@ -43,14 +41,13 @@ func FromGetUserByEmailRow(row *database.GetUserByEmailRow) *User {
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,
-		AuthProvider:    row.AuthProvider,
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       &row.UpdatedAt.Time,
 		VerifiedAt:      &row.VerifiedAt.Time,
 	}
 }
 
-func FromGetUserByID(row *database.GetUserByIdRow) *User {
+func FromGetUserByID(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
@@ -58,14 +55,13 @@ func FromGetUserByID(row *database.GetUserByIdRow) *User {
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,
-		AuthProvider:    row.AuthProvider,
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       &row.UpdatedAt.Time,
 		VerifiedAt:      &row.VerifiedAt.Time,
 	}
 }
 
-func FromGetUserByProviderRow(row *database.GetUserByProviderRow) *User {
+func FromGetUserByProviderRow(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
@@ -73,7 +69,6 @@ func FromGetUserByProviderRow(row *database.GetUserByProviderRow) *User {
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,
-		AuthProvider:    row.AuthProvider,
 		CreatedAt:       row.CreatedAt,
 		UpdatedAt:       &row.UpdatedAt.Time,
 		VerifiedAt:      &row.VerifiedAt.Time,
