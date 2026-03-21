@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -11,28 +12,47 @@ import (
 
 type contextKey string
 
-const UserIDKey contextKey = "user_id"
+const (
+	UserIDKey contextKey = "user_id"
+	EmailKey  contextKey = "email"
+)
 
 func AuthMiddleware(maker auth.Maker, isProd bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var userID uuid.UUID
+			var email string
 			var found bool
-			// FIXME: No token rotation exists at the moment
-			// Try JWT access cookie
+
+			// 1. Try access token
 			if cookie, err := r.Cookie(auth.AccessTokenCookie); err == nil {
 				if claims, err := maker.Verify(cookie.Value); err == nil {
 					userID = claims.UserID
+					email = claims.Email
 					found = true
+				} else if errors.Is(err, auth.ErrExpiredToken) {
+					// 2. Access token expired — try refresh token
+					if refresh, err := r.Cookie(auth.RefreshTokenCookie); err == nil {
+						if claims, err := maker.Verify(refresh.Value); err == nil {
+							// Silently rotate both cookies
+							if err := auth.SetTokenCookies(w, maker, claims.UserID, claims.Email, isProd); err != nil {
+								http.Error(w, "unauthorized", http.StatusUnauthorized)
+								return
+							}
+							userID = claims.UserID
+							email = claims.Email
+							found = true
+						}
+					}
 				}
 			}
 
-			// Try Gothic session (OIDC)
+			// 3. Try Gothic session (OAuth users)
 			if !found {
 				if session, err := gothic.Store.Get(r, "user-session"); err == nil {
 					if id, ok := session.Values["user_id"].(string); ok && id != "" {
-						if parsed, err := uuid.Parse(id); err == nil {
-							userID = parsed
+						if parsedID, err := uuid.Parse(id); err == nil {
+							userID = parsedID
 							found = true
 						}
 					}
@@ -45,6 +65,7 @@ func AuthMiddleware(maker auth.Maker, isProd bool) func(http.Handler) http.Handl
 			}
 
 			ctx := context.WithValue(r.Context(), UserIDKey, userID)
+			ctx = context.WithValue(ctx, EmailKey, email)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
