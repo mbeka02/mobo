@@ -31,8 +31,8 @@ func NewJWTMaker(secret string) (Maker, error) {
 }
 
 // This method is used to create a new JWT token , it implements the Maker interface
-func (maker *JWTMaker) Create(userId uuid.UUID, email string, duration time.Duration) (string, error) {
-	payload := NewPayload(userId, email, duration)
+func (maker *JWTMaker) Create(userId uuid.UUID, email string, tokenType TokenType, duration time.Duration) (string, error) {
+	payload := NewPayload(userId, email, tokenType, duration)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
 	return token.SignedString([]byte(maker.secret))

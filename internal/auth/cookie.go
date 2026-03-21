@@ -3,6 +3,8 @@ package auth
 import (
 	"net/http"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -13,12 +15,12 @@ const (
 	DefaultRefreshDuration = 7 * 24 * time.Hour
 )
 
-func SetTokenCookies(w http.ResponseWriter, maker Maker, userID int64, email string, isSecure bool) error {
-	access, err := maker.Create(userID, email, DefaultAccessDuration)
+func SetTokenCookies(w http.ResponseWriter, maker Maker, userID uuid.UUID, email string, isSecure bool) error {
+	access, err := maker.Create(userID, email, AccessToken, DefaultAccessDuration)
 	if err != nil {
 		return err
 	}
-	refresh, err := maker.Create(userID, email, DefaultRefreshDuration)
+	refresh, err := maker.Create(userID, email, RefreshToken, DefaultRefreshDuration)
 	if err != nil {
 		return err
 	}

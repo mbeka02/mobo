@@ -7,6 +7,6 @@ import (
 )
 
 type Maker interface {
-	Create(userId uuid.UUID, email string, duration time.Duration) (string, error)
+	Create(userId uuid.UUID, email string, tokenType TokenType, duration time.Duration) (string, error)
 	Verify(tokenString string) (*Payload, error)
 }
