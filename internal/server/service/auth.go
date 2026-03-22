@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/mbeka02/ticketing-service/internal/auth"
 	"github.com/mbeka02/ticketing-service/internal/model"
 	"github.com/mbeka02/ticketing-service/internal/server/repository"
 	"github.com/mbeka02/ticketing-service/pkg/logger"
@@ -21,6 +22,11 @@ type OAuthUserData struct {
 	ProviderUserID string
 	AvatarURL      string
 }
+
+var (
+	ErrEmailAlreadyExists = errors.New("a user with this email already exists")
+	ErrInvalidCredentials = errors.New("invalid email or password")
+)
 
 type AuthService interface {
 	CreateOrLoginOAuthUser(ctx context.Context, data OAuthUserData) (*model.User, error)
@@ -94,15 +100,77 @@ func (s *authService) CreateOrLoginOAuthUser(ctx context.Context, data OAuthUser
 }
 
 func (s *authService) RegisterLocalUser(ctx context.Context, email, fullName, password, telephone string) (*model.User, error) {
-	// TODO: Implement password hashing
-	// TODO: Check if email already exists
-	// TODO: Create user and identity
-	return nil, errors.New("not implemented")
+	// Check if email is already taken
+	_, err := s.repo.GetUserByEmail(ctx, email)
+	if err == nil {
+		logger.WarnCtx(ctx, "registration attempt with existing email",
+			zap.String("email", email),
+		)
+		return nil, ErrEmailAlreadyExists
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("error checking existing user: %w", err)
+	}
+
+	// Hash the password
+	hashedPassword, err := auth.HashPassword(password)
+	if err != nil {
+		logger.ErrorCtx(ctx, "failed to hash password", zap.Error(err))
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Create the user and link local identity in a single transaction
+	user, err := s.repo.CreateLocalUserWithIdentity(ctx, email, fullName, hashedPassword, telephone)
+	if err != nil {
+		logger.ErrorCtx(ctx, "failed to create local user",
+			zap.Error(err),
+			zap.String("email", email),
+		)
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	logger.InfoCtx(ctx, "local user registered successfully",
+		zap.String("user_id", user.ID.String()),
+		zap.String("email", email),
+	)
+
+	return user, nil
 }
 
 func (s *authService) LoginLocalUser(ctx context.Context, email, password string) (*model.User, error) {
-	// TODO: Get user by email
-	// TODO: Verify password hash
-	// TODO: Check for 'local' identity
-	return nil, errors.New("not implemented")
+	// Get user by email
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logger.WarnCtx(ctx, "login attempt with non-existent email",
+				zap.String("email", email),
+			)
+			return nil, ErrInvalidCredentials
+		}
+		return nil, fmt.Errorf("error fetching user: %w", err)
+	}
+
+	// Ensure user has a password (not an OAuth-only account)
+	if user.PasswordHash == nil || *user.PasswordHash == "" {
+		logger.WarnCtx(ctx, "login attempt on OAuth-only account",
+			zap.String("email", email),
+		)
+		return nil, ErrInvalidCredentials
+	}
+
+	// Compare password
+	if err := auth.ComparePassword(password, *user.PasswordHash); err != nil {
+		logger.WarnCtx(ctx, "login attempt with wrong password",
+			zap.String("email", email),
+		)
+		return nil, ErrInvalidCredentials
+	}
+
+	logger.InfoCtx(ctx, "local user logged in successfully",
+		zap.String("user_id", user.ID.String()),
+		zap.String("email", email),
+	)
+
+	return user, nil
 }
+

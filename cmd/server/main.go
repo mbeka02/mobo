@@ -49,7 +49,7 @@ func setupServer() (*http.Server, error) {
 	}
 
 	callbackURL := fmt.Sprintf("http://localhost%s/api/v1/auth/google/callback", cfg.ServerPort)
-	auth.NewAuth(callbackURL)
+	auth.NewAuth(callbackURL, cfg.IsProduction())
 
 	logger.Info("completed server setup",
 		zap.String("port", cfg.ServerPort),

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mbeka02/ticketing-service/config"
+	"github.com/mbeka02/ticketing-service/internal/auth"
 	"github.com/mbeka02/ticketing-service/internal/database"
 	"github.com/mbeka02/ticketing-service/internal/server/handler"
 	"github.com/mbeka02/ticketing-service/internal/server/repository"
@@ -28,9 +29,10 @@ type Repositories struct {
 }
 
 type Server struct {
-	store    *database.Store
-	config   *config.Config
-	handlers *Handlers
+	store      *database.Store
+	config     *config.Config
+	handlers   *Handlers
+	tokenMaker auth.Maker
 }
 
 func initRepositories(store *database.Store) *Repositories {
@@ -45,9 +47,9 @@ func initServices(repos *Repositories) *Services {
 	}
 }
 
-func initHandlers(services *Services) *Handlers {
+func initHandlers(services *Services, maker auth.Maker, cfg *config.Config) *Handlers {
 	return &Handlers{
-		Auth: handler.NewAuthHandler(services.Auth),
+		Auth: handler.NewAuthHandler(services.Auth, maker, cfg.IsProduction(), cfg.AccessTokenDuration, cfg.RefreshTokenDuration),
 	}
 }
 
@@ -75,14 +77,24 @@ func NewServer(cfg *config.Config) (*http.Server, error) {
 
 	logger.Info("database connection established successfully")
 
+	// Create JWT token maker
+	tokenMaker, err := auth.NewJWTMaker(cfg.SymmetricKey)
+	if err != nil {
+		logger.Error("failed to create token maker", zap.Error(err))
+		return nil, fmt.Errorf("failed to create token maker: %w", err)
+	}
+
+	logger.Info("token maker initialized successfully")
+
 	repos := initRepositories(store)
 	services := initServices(repos)
-	handlers := initHandlers(services)
+	handlers := initHandlers(services, tokenMaker, cfg)
 
 	srv := &Server{
-		store:    store,
-		config:   cfg,
-		handlers: handlers,
+		store:      store,
+		config:     cfg,
+		handlers:   handlers,
+		tokenMaker: tokenMaker,
 	}
 
 	return &http.Server{
@@ -93,3 +105,4 @@ func NewServer(cfg *config.Config) (*http.Server, error) {
 		WriteTimeout: cfg.ServerWriteTimeout,
 	}, nil
 }
+

@@ -11,6 +11,7 @@ type User struct {
 	ID              uuid.UUID
 	Email           string
 	TelephoneNumber *string
+	PasswordHash    *string
 	FullName        string
 	ProfileImageURL *string
 	UserName        *string
@@ -24,6 +25,7 @@ func FromDatabaseUser(dbUser *database.User) *User {
 		ID:              dbUser.ID,
 		Email:           dbUser.Email,
 		TelephoneNumber: dbUser.TelephoneNumber,
+		PasswordHash:    dbUser.PasswordHash,
 		FullName:        dbUser.FullName,
 		ProfileImageURL: dbUser.ProfileImageUrl,
 		UserName:        dbUser.UserName,
@@ -38,6 +40,7 @@ func FromGetUserByEmailRow(row *database.User) *User {
 		ID:              row.ID,
 		Email:           row.Email,
 		TelephoneNumber: row.TelephoneNumber,
+		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,
@@ -52,6 +55,7 @@ func FromGetUserByID(row *database.User) *User {
 		ID:              row.ID,
 		Email:           row.Email,
 		TelephoneNumber: row.TelephoneNumber,
+		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,
@@ -66,6 +70,7 @@ func FromGetUserByProviderRow(row *database.User) *User {
 		ID:              row.ID,
 		Email:           row.Email,
 		TelephoneNumber: row.TelephoneNumber,
+		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,
 		ProfileImageURL: row.ProfileImageUrl,
 		UserName:        row.UserName,

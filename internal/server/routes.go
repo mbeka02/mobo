@@ -38,7 +38,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: false,
+		AllowCredentials: true,
 		MaxAge:           300,
 	}))
 
@@ -46,9 +46,22 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Get("/", s.testHandler)
 		// Health Check
 		r.Get("/health", s.healthHandler)
-		// Auth
+
+		// OAuth routes
 		r.Get("/auth/{provider}", s.handlers.Auth.BeginAuthHandler)
 		r.Get("/auth/{provider}/callback", s.handlers.Auth.GetAuthCallbackHandler)
+
+		// Traditional auth routes (public)
+		r.Post("/auth/signup", s.handlers.Auth.SignupHandler)
+		r.Post("/auth/login", s.handlers.Auth.LoginHandler)
+		r.Post("/auth/logout", s.handlers.Auth.LogoutHandler)
+
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(customMiddleware.AuthMiddleware(s.tokenMaker, s.config.IsProduction(), s.config.AccessTokenDuration, s.config.RefreshTokenDuration))
+
+			r.Get("/me", s.handlers.Auth.GetCurrentUser)
+		})
 	})
 
 	return r

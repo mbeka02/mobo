@@ -24,7 +24,7 @@ type AuthRepository interface {
 	CreateUser(ctx context.Context, user CreateUserParams) (*model.User, error)
 	LinkIdentityToUser(ctx context.Context, userID uuid.UUID, provider, providerUserID string) error
 	CreateUserWithIdentity(ctx context.Context, user CreateUserParams, provider, providerUserID string) (*model.User, error)
-	CreateLocalUser(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error)
+	CreateLocalUserWithIdentity(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error)
 }
 
 type authRepository struct {
@@ -109,15 +109,34 @@ func (r *authRepository) CreateUserWithIdentity(ctx context.Context, user Create
 	return createdUser, nil
 }
 
-func (r *authRepository) CreateLocalUser(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error) {
-	dbUser, err := r.store.CreateLocalUser(ctx, database.CreateLocalUserParams{
-		Email:           email,
-		FullName:        fullName,
-		PasswordHash:    &passwordHash,
-		TelephoneNumber: &telephone,
+func (r *authRepository) CreateLocalUserWithIdentity(ctx context.Context, email, fullName, passwordHash, telephone string) (*model.User, error) {
+	var createdUser *model.User
+	err := r.store.ExecTx(ctx, func(q *database.Queries) error {
+		dbUser, err := q.CreateLocalUser(ctx, database.CreateLocalUserParams{
+			Email:           email,
+			FullName:        fullName,
+			PasswordHash:    &passwordHash,
+			TelephoneNumber: &telephone,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create local user in transaction: %w", err)
+		}
+
+		_, err = q.LinkIdentityToUser(ctx, database.LinkIdentityToUserParams{
+			UserID:         dbUser.ID,
+			Provider:       "local",
+			ProviderUserID: dbUser.ID.String(),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to link local identity in transaction: %w", err)
+		}
+
+		createdUser = model.FromDatabaseUser(&dbUser)
+		return nil
 	})
+
 	if err != nil {
 		return nil, err
 	}
-	return model.FromDatabaseUser(&dbUser), nil
+	return createdUser, nil
 }

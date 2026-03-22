@@ -16,6 +16,11 @@ type Config struct {
 	ServerWriteTimeout time.Duration `mapstructure:"SERVER_WRITETIMEOUT"`
 	ServerIdleTimeout  time.Duration `mapstructure:"SERVER_IDLETIMEOUT"`
 
+	// Auth config
+	SymmetricKey         string        `mapstructure:"SYMMETRIC_KEY"`
+	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+
 	// Database config
 	DatabaseURI             string        `mapstructure:"DATABASE_URI"`
 	DatabaseMaxConnections  int           `mapstructure:"DATABASE_MAXCONNECTIONS"`
@@ -46,7 +51,18 @@ func Load() (*Config, error) {
 	// Try to load .env file (optional in production)
 	v.SetConfigFile(".env")
 	v.SetConfigType("env")
-	_ = v.ReadInConfig()
+	envFileErr := v.ReadInConfig()
+
+	// Auto-detect environment if SERVER_ENV is not explicitly set
+	if os.Getenv("SERVER_ENV") == "" && !v.IsSet("SERVER_ENV") {
+		if envFileErr == nil {
+			// .env file exists — we're in development
+			v.Set("SERVER_ENV", "development")
+		} else {
+			// No .env file — assume production
+			v.Set("SERVER_ENV", "production")
+		}
+	}
 
 	// Explicitly bind environment variables
 	bindEnvVars(v)
@@ -80,6 +96,9 @@ func bindEnvVars(v *viper.Viper) {
 		"DATABASE_MAXCONNECTIONS",
 		"DATABASE_MINCONNECTIONS",
 		"DATABASE_MAXCONNLIFETIME",
+		"SYMMETRIC_KEY",
+		"ACCESS_TOKEN_DURATION",
+		"REFRESH_TOKEN_DURATION",
 	}
 
 	for _, envVar := range envVars {
@@ -92,7 +111,6 @@ func bindEnvVars(v *viper.Viper) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("SERVER_PORT", "3000")
-	v.SetDefault("SERVER_ENV", "development")
 	v.SetDefault("SERVER_READTIMEOUT", 45*time.Second)
 	v.SetDefault("SERVER_WRITETIMEOUT", 30*time.Second)
 	v.SetDefault("SERVER_IDLETIMEOUT", time.Minute)
@@ -101,12 +119,20 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("DATABASE_MAXCONNECTIONS", 25)
 	v.SetDefault("DATABASE_MINCONNECTIONS", 5)
 	v.SetDefault("DATABASE_MAXCONNLIFETIME", 30*time.Minute)
+
+	// Auth defaults
+	v.SetDefault("ACCESS_TOKEN_DURATION", 15*time.Minute)
+	v.SetDefault("REFRESH_TOKEN_DURATION", 7*24*time.Hour)
 }
 
 func (c *Config) Validate() error {
 	// Required fields
 	if c.DatabaseURI == "" {
 		return fmt.Errorf("DATABASE_URI is required but not set")
+	}
+
+	if len(c.SymmetricKey) < 32 {
+		return fmt.Errorf("SYMMETRIC_KEY must be at least 32 characters")
 	}
 
 	// Constraints

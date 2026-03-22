@@ -2,22 +2,120 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	"github.com/markbates/goth/gothic"
+	"github.com/mbeka02/ticketing-service/internal/auth"
+	"github.com/mbeka02/ticketing-service/internal/model"
+	customMiddleware "github.com/mbeka02/ticketing-service/internal/server/middleware"
 	"github.com/mbeka02/ticketing-service/internal/server/service"
 	"github.com/mbeka02/ticketing-service/pkg/logger"
 	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
-	authService service.AuthService
+	authService      service.AuthService
+	tokenMaker       auth.Maker
+	isProduction     bool
+	accessDuration   time.Duration
+	refreshDuration  time.Duration
 }
 
-func NewAuthHandler(service service.AuthService) *AuthHandler {
-	return &AuthHandler{service}
+func NewAuthHandler(svc service.AuthService, maker auth.Maker, isProduction bool, accessDuration, refreshDuration time.Duration) *AuthHandler {
+	return &AuthHandler{
+		authService:      svc,
+		tokenMaker:       maker,
+		isProduction:     isProduction,
+		accessDuration:  accessDuration,
+		refreshDuration: refreshDuration,
+	}
+}
+
+func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req model.CreateLocalUserRequest
+	if err := parseAndValidateRequest(r, &req); err != nil {
+		logger.WarnCtx(ctx, "invalid signup request", zap.Error(err))
+		respondWithError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	user, err := h.authService.RegisterLocalUser(ctx, req.Email, req.Fullname, req.Password, req.TelephoneNumber)
+	if err != nil {
+		if errors.Is(err, service.ErrEmailAlreadyExists) {
+			respondWithError(w, http.StatusConflict, err)
+			return
+		}
+		logger.ErrorCtx(ctx, "failed to register user", zap.Error(err))
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Set JWT token cookies
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+		logger.ErrorCtx(ctx, "failed to set token cookies", zap.Error(err))
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, APIResponse{
+		Status:  http.StatusCreated,
+		Message: "user registered successfully",
+		Data:    user.ToResponse(),
+	})
+}
+
+func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req model.LoginRequest
+	if err := parseAndValidateRequest(r, &req); err != nil {
+		logger.WarnCtx(ctx, "invalid login request", zap.Error(err))
+		respondWithError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	user, err := h.authService.LoginLocalUser(ctx, req.Email, req.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			respondWithError(w, http.StatusUnauthorized, err)
+			return
+		}
+		logger.ErrorCtx(ctx, "login failed", zap.Error(err))
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Set JWT token cookies
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+		logger.ErrorCtx(ctx, "failed to set token cookies", zap.Error(err))
+		respondWithError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, APIResponse{
+		Status:  http.StatusOK,
+		Message: "login successful",
+		Data:    user.ToResponse(),
+	})
+}
+
+func (h *AuthHandler) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	auth.ClearTokenCookies(w)
+
+	logger.InfoCtx(ctx, "user logged out")
+
+	respondWithJSON(w, http.StatusOK, APIResponse{
+		Status:  http.StatusOK,
+		Message: "logged out successfully",
+	})
 }
 
 func (h *AuthHandler) BeginAuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -83,17 +181,40 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	session, _ := gothic.Store.Get(r, "user-session")
-	session.Values["user_id"] = user.ID.String()
-	session.Values["email"] = user.Email
-	err = session.Save(r, w)
-	if err != nil {
-		logger.ErrorCtx(ctx, "failed to save user session",
+	// Set JWT token cookies for unified auth
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+		logger.ErrorCtx(ctx, "failed to set token cookies after OAuth",
 			zap.Error(err),
 			zap.String("user_id", user.ID.String()),
 		)
-		http.Redirect(w, r, "http://localhost:5173/login?error=session_failed", http.StatusFound)
+		http.Redirect(w, r, "http://localhost:5173/login?error=token_failed", http.StatusFound)
 		return
 	}
+
 	http.Redirect(w, r, "http://localhost:5173/home", http.StatusFound)
+}
+
+func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, ok := customMiddleware.UserIDFromContext(ctx)
+	if !ok {
+		respondWithError(w, http.StatusUnauthorized, errors.New("unauthorized"))
+		return
+	}
+
+	email, _ := ctx.Value(customMiddleware.EmailKey).(string)
+
+	logger.DebugCtx(ctx, "fetching current user",
+		zap.String("user_id", userID.String()),
+	)
+
+	respondWithJSON(w, http.StatusOK, APIResponse{
+		Status:  http.StatusOK,
+		Message: "current user",
+		Data: map[string]string{
+			"user_id": userID.String(),
+			"email":   email,
+		},
+	})
 }
