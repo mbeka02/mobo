@@ -51,7 +51,18 @@ func Load() (*Config, error) {
 	// Try to load .env file (optional in production)
 	v.SetConfigFile(".env")
 	v.SetConfigType("env")
-	_ = v.ReadInConfig()
+	envFileErr := v.ReadInConfig()
+
+	// Auto-detect environment if SERVER_ENV is not explicitly set
+	if os.Getenv("SERVER_ENV") == "" && !v.IsSet("SERVER_ENV") {
+		if envFileErr == nil {
+			// .env file exists — we're in development
+			v.Set("SERVER_ENV", "development")
+		} else {
+			// No .env file — assume production
+			v.Set("SERVER_ENV", "production")
+		}
+	}
 
 	// Explicitly bind environment variables
 	bindEnvVars(v)
@@ -100,7 +111,6 @@ func bindEnvVars(v *viper.Viper) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("SERVER_PORT", "3000")
-	v.SetDefault("SERVER_ENV", "development")
 	v.SetDefault("SERVER_READTIMEOUT", 45*time.Second)
 	v.SetDefault("SERVER_WRITETIMEOUT", 30*time.Second)
 	v.SetDefault("SERVER_IDLETIMEOUT", time.Minute)
