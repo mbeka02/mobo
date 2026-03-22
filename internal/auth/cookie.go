@@ -10,23 +10,20 @@ import (
 const (
 	AccessTokenCookie  = "access_token"
 	RefreshTokenCookie = "refresh_token"
-	// TODO:MAKE THESE ENV VARIABLES AND/OR MOVE IT TO THE CONFIG
-	DefaultAccessDuration  = 15 * time.Minute
-	DefaultRefreshDuration = 7 * 24 * time.Hour
 )
 
-func SetTokenCookies(w http.ResponseWriter, maker Maker, userID uuid.UUID, email string, isSecure bool) error {
-	access, err := maker.Create(userID, email, AccessToken, DefaultAccessDuration)
+func SetTokenCookies(w http.ResponseWriter, maker Maker, userID uuid.UUID, email string, isSecure bool, accessDuration, refreshDuration time.Duration) error {
+	access, err := maker.Create(userID, email, AccessToken, accessDuration)
 	if err != nil {
 		return err
 	}
-	refresh, err := maker.Create(userID, email, RefreshToken, DefaultRefreshDuration)
+	refresh, err := maker.Create(userID, email, RefreshToken, refreshDuration)
 	if err != nil {
 		return err
 	}
 
-	setCookie(w, AccessTokenCookie, access, DefaultAccessDuration, isSecure)
-	setCookie(w, RefreshTokenCookie, refresh, DefaultRefreshDuration, isSecure)
+	setCookie(w, AccessTokenCookie, access, accessDuration, isSecure)
+	setCookie(w, RefreshTokenCookie, refresh, refreshDuration, isSecure)
 	return nil
 }
 
@@ -46,3 +43,4 @@ func setCookie(w http.ResponseWriter, name, value string, dur time.Duration, sec
 		SameSite: http.SameSiteLaxMode,
 	})
 }
+

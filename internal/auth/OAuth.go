@@ -17,9 +17,8 @@ var (
 	SESSION_SECRET       = os.Getenv("SESSION_SECRET")
 )
 
-func NewAuth(callbackURL string) {
+func NewAuth(callbackURL string, isProd bool) {
 	maxAge := 86400 * 30 // 30 days
-	isProd := false      // Set to true when serving over https
 
 	store := sessions.NewCookieStore([]byte(SESSION_SECRET))
 	store.MaxAge(maxAge)

@@ -16,6 +16,11 @@ type Config struct {
 	ServerWriteTimeout time.Duration `mapstructure:"SERVER_WRITETIMEOUT"`
 	ServerIdleTimeout  time.Duration `mapstructure:"SERVER_IDLETIMEOUT"`
 
+	// Auth config
+	SymmetricKey         string        `mapstructure:"SYMMETRIC_KEY"`
+	AccessTokenDuration  time.Duration `mapstructure:"ACCESS_TOKEN_DURATION"`
+	RefreshTokenDuration time.Duration `mapstructure:"REFRESH_TOKEN_DURATION"`
+
 	// Database config
 	DatabaseURI             string        `mapstructure:"DATABASE_URI"`
 	DatabaseMaxConnections  int           `mapstructure:"DATABASE_MAXCONNECTIONS"`
@@ -80,6 +85,9 @@ func bindEnvVars(v *viper.Viper) {
 		"DATABASE_MAXCONNECTIONS",
 		"DATABASE_MINCONNECTIONS",
 		"DATABASE_MAXCONNLIFETIME",
+		"SYMMETRIC_KEY",
+		"ACCESS_TOKEN_DURATION",
+		"REFRESH_TOKEN_DURATION",
 	}
 
 	for _, envVar := range envVars {
@@ -101,12 +109,20 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("DATABASE_MAXCONNECTIONS", 25)
 	v.SetDefault("DATABASE_MINCONNECTIONS", 5)
 	v.SetDefault("DATABASE_MAXCONNLIFETIME", 30*time.Minute)
+
+	// Auth defaults
+	v.SetDefault("ACCESS_TOKEN_DURATION", 15*time.Minute)
+	v.SetDefault("REFRESH_TOKEN_DURATION", 7*24*time.Hour)
 }
 
 func (c *Config) Validate() error {
 	// Required fields
 	if c.DatabaseURI == "" {
 		return fmt.Errorf("DATABASE_URI is required but not set")
+	}
+
+	if len(c.SymmetricKey) < 32 {
+		return fmt.Errorf("SYMMETRIC_KEY must be at least 32 characters")
 	}
 
 	// Constraints

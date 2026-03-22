@@ -17,7 +17,7 @@ func TestJWTMaker(t *testing.T) {
 	issuedAt := time.Now()
 	expiresAt := time.Now().Add(duration)
 
-	token, err := maker.Create(userId, email, duration)
+	token, err := maker.Create(userId, email, AccessToken, duration)
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
 
@@ -26,6 +26,7 @@ func TestJWTMaker(t *testing.T) {
 	require.NotEmpty(t, claims)
 	require.Equal(t, email, claims.Email)
 	require.Equal(t, userId, claims.UserID)
+	require.Equal(t, AccessToken, claims.TokenType)
 	require.WithinDuration(t, issuedAt, claims.IssuedAt, time.Second)
 	require.WithinDuration(t, expiresAt, claims.ExpiresAt, time.Second)
 }
@@ -36,7 +37,7 @@ func TestExpiredJWTToken(t *testing.T) {
 	email := utils.RandEmail()
 	userId := utils.RandUUID()
 	duration := -time.Minute
-	token, err := maker.Create(userId, email, duration)
+	token, err := maker.Create(userId, email, AccessToken, duration)
 
 	require.NoError(t, err)
 	require.NotEmpty(t, token)
@@ -44,5 +45,9 @@ func TestExpiredJWTToken(t *testing.T) {
 	claims, err := maker.Verify(token)
 	require.Error(t, err)
 	require.EqualError(t, err, ErrExpiredToken.Error())
-	require.Nil(t, claims)
+	// Claims should still be returned for expired tokens (for refresh flow)
+	require.NotNil(t, claims)
+	require.Equal(t, email, claims.Email)
+	require.Equal(t, userId, claims.UserID)
 }
+

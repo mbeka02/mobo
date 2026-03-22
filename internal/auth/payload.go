@@ -24,11 +24,16 @@ type Payload struct {
 }
 
 func NewPayload(userId uuid.UUID, email string, tokenType TokenType, duration time.Duration) *Payload {
+	now := time.Now()
 	return &Payload{
 		UserID:    userId,
 		Email:     email,
 		TokenType: tokenType,
-		IssuedAt:  time.Now(),
-		ExpiresAt: time.Now().Add(duration),
+		IssuedAt:  now,
+		ExpiresAt: now.Add(duration),
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(duration)),
+		},
 	}
 }

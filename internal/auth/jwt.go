@@ -50,17 +50,21 @@ func (maker *JWTMaker) Verify(tokenString string) (*Payload, error) {
 	}
 	token, err := jwt.ParseWithClaims(tokenString, &Payload{}, keyFunc)
 	if err != nil {
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			// Still extract claims so the caller can read UserID/Email for refresh
+			if token != nil {
+				if claims, ok := token.Claims.(*Payload); ok {
+					return claims, ErrExpiredToken
+				}
+			}
+			return nil, ErrExpiredToken
+		}
 		return nil, ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*Payload)
 	if !ok || !token.Valid {
 		return nil, ErrInvalidToken
-	}
-
-	// check if the token has expired
-	if time.Now().After(claims.ExpiresAt) {
-		return nil, ErrExpiredToken
 	}
 
 	return claims, nil
