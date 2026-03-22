@@ -60,7 +60,6 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(customMiddleware.AuthMiddleware(s.tokenMaker, s.config.IsProduction(), s.config.AccessTokenDuration, s.config.RefreshTokenDuration))
 
-			// Example protected route
 			r.Get("/me", s.handlers.Auth.GetCurrentUser)
 		})
 	})
@@ -91,4 +90,3 @@ func (s *Server) healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(200)
 	json.NewEncoder(w).Encode(stats)
 }
-
