@@ -86,6 +86,10 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 			respondWithError(w, http.StatusUnauthorized, err)
 			return
 		}
+		if errors.Is(err, service.ErrOAuthOnlyAccount) {
+			respondWithError(w, http.StatusConflict, err)
+			return
+		}
 		logger.ErrorCtx(ctx, "login failed", zap.Error(err))
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
