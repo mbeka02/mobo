@@ -26,6 +26,7 @@ type OAuthUserData struct {
 var (
 	ErrEmailAlreadyExists = errors.New("a user with this email already exists")
 	ErrInvalidCredentials = errors.New("invalid email or password")
+	ErrOAuthOnlyAccount   = errors.New("this account uses a social login provider, please log in with your provider or set a password in account settings")
 )
 
 type AuthService interface {
@@ -155,7 +156,7 @@ func (s *authService) LoginLocalUser(ctx context.Context, email, password string
 		logger.WarnCtx(ctx, "login attempt on OAuth-only account",
 			zap.String("email", email),
 		)
-		return nil, ErrInvalidCredentials
+		return nil, ErrOAuthOnlyAccount
 	}
 
 	// Compare password
