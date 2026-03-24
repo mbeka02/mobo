@@ -1,6 +1,24 @@
+# The Caddyfile is an easy way to configure your Caddy web server.
+#
+# Unless the file starts with a global options block, the first
+# uncommented line is always the address of your site.
+#
+# To use your own domain name (with automatic HTTPS), first make
+# sure your domain's A/AAAA DNS records are properly pointed to
+# this machine's public IP, then replace ":80" below with your
+# domain name.
+
 mobo-ticketing.tech {
-  reverse_proxy localhost:3000 localhost:3001 localhost:3002 {
-    health_uri /health
-      fail_duration 30s
-  }
+        root * /home/ubuntu/production/web
+        encode zstd gzip
+
+        reverse_proxy /api/* localhost:3000 localhost:3001 localhost:3002 {
+                health_uri /api/v1/health
+                fail_duration 30s
+        }
+
+        try_files {path} /index.html
+        file_server
 }
+# Refer to the Caddy docs for more information:
+# https://caddyserver.com/docs/caddyfile
