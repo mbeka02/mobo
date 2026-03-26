@@ -12,6 +12,8 @@ type Config struct {
 	// Server config
 	ServerPort         string        `mapstructure:"SERVER_PORT"`
 	ServerEnv          string        `mapstructure:"SERVER_ENV"`
+	BaseURL            string        `mapstructure:"BASE_URL"`
+	FrontendURL        string        `mapstructure:"FRONTEND_URL"`
 	ServerReadTimeout  time.Duration `mapstructure:"SERVER_READTIMEOUT"`
 	ServerWriteTimeout time.Duration `mapstructure:"SERVER_WRITETIMEOUT"`
 	ServerIdleTimeout  time.Duration `mapstructure:"SERVER_IDLETIMEOUT"`
@@ -99,6 +101,8 @@ func bindEnvVars(v *viper.Viper) {
 		"SYMMETRIC_KEY",
 		"ACCESS_TOKEN_DURATION",
 		"REFRESH_TOKEN_DURATION",
+		"BASE_URL",
+		"FRONTEND_URL",
 	}
 
 	for _, envVar := range envVars {
@@ -111,6 +115,8 @@ func bindEnvVars(v *viper.Viper) {
 func setDefaults(v *viper.Viper) {
 	// Server defaults
 	v.SetDefault("SERVER_PORT", "3000")
+	v.SetDefault("BASE_URL", "http://localhost:3000")
+	v.SetDefault("FRONTEND_URL", "http://localhost:5173")
 	v.SetDefault("SERVER_READTIMEOUT", 45*time.Second)
 	v.SetDefault("SERVER_WRITETIMEOUT", 30*time.Second)
 	v.SetDefault("SERVER_IDLETIMEOUT", time.Minute)

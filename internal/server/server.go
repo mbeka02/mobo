@@ -49,7 +49,7 @@ func initServices(repos *Repositories) *Services {
 
 func initHandlers(services *Services, maker auth.Maker, cfg *config.Config) *Handlers {
 	return &Handlers{
-		Auth: handler.NewAuthHandler(services.Auth, maker, cfg.IsProduction(), cfg.AccessTokenDuration, cfg.RefreshTokenDuration),
+		Auth: handler.NewAuthHandler(services.Auth, maker, cfg.IsProduction(), cfg.AccessTokenDuration, cfg.RefreshTokenDuration, cfg.FrontendURL),
 	}
 }
 
