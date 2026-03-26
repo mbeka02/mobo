@@ -23,15 +23,17 @@ type AuthHandler struct {
 	isProduction     bool
 	accessDuration   time.Duration
 	refreshDuration  time.Duration
+	frontendURL      string
 }
 
-func NewAuthHandler(svc service.AuthService, maker auth.Maker, isProduction bool, accessDuration, refreshDuration time.Duration) *AuthHandler {
+func NewAuthHandler(svc service.AuthService, maker auth.Maker, isProduction bool, accessDuration, refreshDuration time.Duration, frontendURL string) *AuthHandler {
 	return &AuthHandler{
 		authService:      svc,
 		tokenMaker:       maker,
 		isProduction:     isProduction,
 		accessDuration:  accessDuration,
 		refreshDuration: refreshDuration,
+		frontendURL:     frontendURL,
 	}
 }
 
@@ -146,7 +148,7 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 	provider := chi.URLParam(r, "provider")
 	if provider == "" {
 		logger.WarnCtx(ctx, "auth callback with invalid provider")
-		http.Redirect(w, r, "http://localhost:5173/login?error=invalid_provider", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL+"/login?error=invalid_provider", http.StatusFound)
 		return
 	}
 
@@ -161,7 +163,7 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 			zap.Error(err),
 			zap.String("provider", provider),
 		)
-		http.Redirect(w, r, "http://localhost:5173/login?error=auth_failed", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL+"/login?error=auth_failed", http.StatusFound)
 		return
 	}
 	// Convert to service DTO
@@ -181,7 +183,7 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 			zap.String("provider", provider),
 			zap.String("email", gothUser.Email),
 		)
-		http.Redirect(w, r, "http://localhost:5173/login?error=account_creation_failed", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL+"/login?error=account_creation_failed", http.StatusFound)
 		return
 	}
 
@@ -191,11 +193,11 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 			zap.Error(err),
 			zap.String("user_id", user.ID.String()),
 		)
-		http.Redirect(w, r, "http://localhost:5173/login?error=token_failed", http.StatusFound)
+		http.Redirect(w, r, h.frontendURL+"/login?error=token_failed", http.StatusFound)
 		return
 	}
 
-	http.Redirect(w, r, "http://localhost:5173/home", http.StatusFound)
+	http.Redirect(w, r, h.frontendURL+"/home", http.StatusFound)
 }
 
 func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
