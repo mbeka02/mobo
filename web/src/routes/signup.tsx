@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -36,7 +37,6 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [serverError, setServerError] = useState("");
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -49,15 +49,15 @@ function SignupPage() {
   });
 
   const onSubmit = async (values: SignupFormValues) => {
-    setServerError("");
     try {
       await signup(values.fullName, values.email, values.password);
+      toast.success("Account created! Welcome to Mobo.");
       navigate({ to: "/home" });
     } catch (err) {
       if (isAuthError(err)) {
-        setServerError(err.message);
+        toast.error(err.message);
       } else {
-        setServerError("Something went wrong. Please try again.");
+        toast.error("Something went wrong. Please try again.");
       }
     }
   };
@@ -157,12 +157,7 @@ function SignupPage() {
             <div className="flex-1 h-px bg-[var(--outline-variant)]" />
           </div>
 
-          {/* Server Error */}
-          {serverError && (
-            <div className="bg-[var(--error-container)] text-[var(--on-error-container)] px-4 py-3 rounded-xl text-sm font-medium">
-              {serverError}
-            </div>
-          )}
+
 
           {/* Form */}
           <Form {...form}>
