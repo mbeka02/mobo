@@ -75,7 +75,7 @@ function LandingPage() {
             <div className="flex flex-wrap gap-4 pt-2">
               <Link
                 to="/login"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-br from-[var(--primary)] to-[var(--primary-container)] text-white rounded-xl font-bold shadow-xl hover:scale-95 transition-transform no-underline"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[var(--primary-container)] text-white rounded-xl font-bold shadow-xl hover:scale-95 transition-transform no-underline"
               >
                 Explore Now <ArrowRight size={18} />
               </Link>
@@ -150,7 +150,7 @@ function LandingPage() {
             </div>
 
             {/* Feature 2: Curated Experiences */}
-            <div className="md:col-span-4 bg-[var(--primary)] text-white rounded-[2rem] p-8 md:p-12 flex flex-col items-start justify-center space-y-6 relative overflow-hidden">
+            <div className="md:col-span-4 bg-[var(--primary-container)] text-white rounded-[2rem] p-8 md:p-12 flex flex-col items-start justify-center space-y-6 relative overflow-hidden">
               <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_white,_transparent_70%)]" />
               <h3 className="text-2xl md:text-3xl font-headline font-bold relative z-10">
                 Curated Experiences
@@ -159,7 +159,7 @@ function LandingPage() {
                 From the boutique charm of Nairobi to the coastal magic of
                 Mombasa. We partner with only the finest premium cinemas.
               </p>
-              <button className="bg-white text-[var(--primary)] px-8 py-3 rounded-full font-bold relative z-10 hover:scale-105 transition-transform">
+              <button className="bg-white text-[var(--primary-container)] px-8 py-3 rounded-full font-bold relative z-10 hover:scale-105 transition-transform">
                 Explore Locations
               </button>
             </div>
@@ -219,7 +219,7 @@ function LandingPage() {
             <button className="w-12 h-12 rounded-full border border-[var(--outline)] flex items-center justify-center hover:bg-[var(--surface-container-high)] transition-colors">
               <ChevronLeft size={20} />
             </button>
-            <button className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center">
+            <button className="w-12 h-12 rounded-full bg-[var(--primary-container)] text-white flex items-center justify-center">
               <ChevronRight size={20} />
             </button>
           </div>
@@ -275,7 +275,7 @@ function LandingPage() {
       {/* ═══════ COMMUNITY CTA ═══════ */}
       <section className="py-32 md:py-40 bg-[var(--surface)]">
         <div className="max-w-4xl mx-auto px-6 md:px-8 text-center space-y-10 md:space-y-12">
-          <div className="w-20 h-20 md:w-24 md:h-24 bg-[var(--primary)] rounded-full mx-auto flex items-center justify-center text-white">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-[var(--primary-container)] rounded-full mx-auto flex items-center justify-center text-white">
             <Users size={40} />
           </div>
           <h2 className="text-4xl sm:text-5xl md:text-7xl font-headline font-bold tracking-tight">
@@ -288,7 +288,7 @@ function LandingPage() {
             Mobo-only screenings.
           </p>
           <div className="pt-6 md:pt-8">
-            <button className="px-10 md:px-12 py-5 md:py-6 bg-[var(--primary)] text-white rounded-2xl font-bold text-lg md:text-xl hover:shadow-[0_20px_50px_rgba(171,54,0,0.3)] transition-all">
+            <button className="px-10 md:px-12 py-5 md:py-6 bg-[var(--primary-container)] text-white rounded-2xl font-bold text-lg md:text-xl hover:shadow-[0_20px_50px_rgba(171,54,0,0.3)] transition-all">
               Join Mobo Club Today
             </button>
             <p className="mt-6 text-[var(--on-surface-variant)]/60 font-label text-sm tracking-[0.1em]">

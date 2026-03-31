@@ -1,25 +1,14 @@
-const API_BASE = "/api/v1";
+import { api, type APIError, isAPIError } from '../services/api'
 
 export interface User {
-  id: string;
-  full_name: string;
-  email: string;
-  created_at: string;
+  id: string
+  full_name: string
+  email: string
+  created_at: string
 }
 
-export interface AuthError {
-  status: number;
-  message: string;
-}
-
-function isAuthError(error: unknown): error is AuthError {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "status" in error &&
-    "message" in error
-  );
-}
+/** Re-export for route-level consumption */
+export { type APIError, isAPIError }
 
 /**
  * User-friendly error messages by status code per action context.
@@ -27,87 +16,55 @@ function isAuthError(error: unknown): error is AuthError {
  */
 const friendlyErrors: Record<string, Record<number, string>> = {
   login: {
-    400: "Please check your email and password format.",
-    401: "Invalid email or password. Please try again.",
-    409: "This account uses Google sign-in. Please use the Google button above.",
+    400: 'Please check your email and password format.',
+    401: 'Invalid email or password. Please try again.',
+    409: 'This account uses Google sign-in. Please use the Google button above.',
     500: "We're having trouble signing you in. Please try again later.",
   },
   signup: {
-    400: "Please check your details and try again.",
-    409: "An account with this email already exists. Try signing in instead.",
+    400: 'Please check your details and try again.',
+    409: 'An account with this email already exists. Try signing in instead.',
     500: "We couldn't create your account right now. Please try again later.",
   },
   default: {
-    401: "Your session has expired. Please sign in again.",
+    401: 'Your session has expired. Please sign in again.',
     403: "You don't have permission to do that.",
-    500: "Something went wrong on our end. Please try again later.",
+    500: 'Something went wrong on our end. Please try again later.',
   },
-};
+}
 
-function getFriendlyMessage(status: number, context: string): string {
-  const contextErrors = friendlyErrors[context] || friendlyErrors.default;
+export function getFriendlyMessage(
+  status: number,
+  context: string = 'default',
+): string {
+  const contextErrors = friendlyErrors[context] || friendlyErrors.default
   return (
     contextErrors[status] ||
     friendlyErrors.default[status] ||
-    "Something went wrong. Please try again."
-  );
+    'Something went wrong. Please try again.'
+  )
 }
 
-async function handleResponse<T>(
-  response: Response,
-  context: string = "default"
-): Promise<T> {
-  if (!response.ok) {
-    const message = getFriendlyMessage(response.status, context);
-    const error: AuthError = { status: response.status, message };
-    throw error;
-  }
-  return response.json();
-}
-
-export async function login(
-  email: string,
-  password: string
-): Promise<User> {
-  const res = await fetch(`${API_BASE}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ email, password }),
-  });
-  return handleResponse<User>(res, "login");
+export async function login(email: string, password: string): Promise<User> {
+  return api.post<User>('/auth/login', { email, password })
 }
 
 export async function signup(
   full_name: string,
   email: string,
-  password: string
+  password: string,
 ): Promise<User> {
-  const res = await fetch(`${API_BASE}/auth/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify({ full_name, email, password }),
-  });
-  return handleResponse<User>(res, "signup");
+  return api.post<User>('/auth/signup', { full_name, email, password })
 }
 
 export async function getCurrentUser(): Promise<User> {
-  const res = await fetch(`${API_BASE}/me`, {
-    credentials: "include",
-  });
-  return handleResponse<User>(res);
+  return api.get<User>('/me')
 }
 
 export async function logout(): Promise<void> {
-  await fetch(`${API_BASE}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+  return api.post('/auth/logout')
 }
 
 export function redirectToGoogleOAuth(): void {
-  window.location.href = `${API_BASE}/auth/google`;
+  window.location.href = '/api/v1/auth/google'
 }
-
-export { isAuthError };
