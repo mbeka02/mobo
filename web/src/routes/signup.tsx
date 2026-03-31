@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
-import { signup, redirectToGoogleOAuth, isAuthError } from "../lib/auth";
+import { signup, redirectToGoogleOAuth, isAPIError } from "../lib/auth";
 
 export const Route = createFileRoute("/signup")({ component: SignupPage });
 
@@ -54,7 +54,7 @@ function SignupPage() {
       toast.success("Account created! Welcome to Mobo.");
       navigate({ to: "/home" });
     } catch (err) {
-      if (isAuthError(err)) {
+      if (isAPIError(err)) {
         toast.error(err.message);
       } else {
         toast.error("Something went wrong. Please try again.");
