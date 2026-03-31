@@ -47,7 +47,7 @@ export default function LandingNavbar() {
           <ThemeToggle />
           <Link
             to="/login"
-            className="hidden sm:inline-flex bg-[var(--primary)] text-white px-6 py-2.5 rounded-full font-label font-bold text-sm hover:scale-95 transition-transform no-underline"
+            className="hidden sm:inline-flex bg-[var(--primary-container)] text-white px-6 py-2.5 rounded-full font-label font-bold text-sm hover:scale-95 transition-transform no-underline"
           >
             Get Tickets
           </Link>
