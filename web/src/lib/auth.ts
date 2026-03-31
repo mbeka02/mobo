@@ -21,15 +21,44 @@ function isAuthError(error: unknown): error is AuthError {
   );
 }
 
-async function handleResponse<T>(response: Response): Promise<T> {
+/**
+ * User-friendly error messages by status code per action context.
+ * We never expose raw `detail` from the API to the user.
+ */
+const friendlyErrors: Record<string, Record<number, string>> = {
+  login: {
+    400: "Please check your email and password format.",
+    401: "Invalid email or password. Please try again.",
+    409: "This account uses Google sign-in. Please use the Google button above.",
+    500: "We're having trouble signing you in. Please try again later.",
+  },
+  signup: {
+    400: "Please check your details and try again.",
+    409: "An account with this email already exists. Try signing in instead.",
+    500: "We couldn't create your account right now. Please try again later.",
+  },
+  default: {
+    401: "Your session has expired. Please sign in again.",
+    403: "You don't have permission to do that.",
+    500: "Something went wrong on our end. Please try again later.",
+  },
+};
+
+function getFriendlyMessage(status: number, context: string): string {
+  const contextErrors = friendlyErrors[context] || friendlyErrors.default;
+  return (
+    contextErrors[status] ||
+    friendlyErrors.default[status] ||
+    "Something went wrong. Please try again."
+  );
+}
+
+async function handleResponse<T>(
+  response: Response,
+  context: string = "default"
+): Promise<T> {
   if (!response.ok) {
-    let message = "Something went wrong";
-    try {
-      const body = await response.json();
-      message = body.error || body.message || message;
-    } catch {
-      // ignore parse errors
-    }
+    const message = getFriendlyMessage(response.status, context);
     const error: AuthError = { status: response.status, message };
     throw error;
   }
@@ -46,7 +75,7 @@ export async function login(
     credentials: "include",
     body: JSON.stringify({ email, password }),
   });
-  return handleResponse<User>(res);
+  return handleResponse<User>(res, "login");
 }
 
 export async function signup(
@@ -60,7 +89,7 @@ export async function signup(
     credentials: "include",
     body: JSON.stringify({ full_name, email, password }),
   });
-  return handleResponse<User>(res);
+  return handleResponse<User>(res, "signup");
 }
 
 export async function getCurrentUser(): Promise<User> {

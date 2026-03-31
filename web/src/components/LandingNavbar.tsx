@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Search, Menu, X } from "lucide-react";
 import { useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 
 const navLinks = [
   { label: "Movies", href: "#" },
@@ -43,6 +44,7 @@ export default function LandingNavbar() {
           >
             <Search size={20} />
           </button>
+          <ThemeToggle />
           <Link
             to="/login"
             className="hidden sm:inline-flex bg-[var(--primary)] text-white px-6 py-2.5 rounded-full font-label font-bold text-sm hover:scale-95 transition-transform no-underline"
