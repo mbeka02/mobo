@@ -1,6 +1,6 @@
 -- +goose Up 
 CREATE TABLE IF NOT EXISTS users(
-id UUID PRIMARY KEY DEFAULT uuidv7(),
+id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
 email varchar(256) UNIQUE NOT NULL,
 telephone_number varchar(16),
 password_hash varchar,
