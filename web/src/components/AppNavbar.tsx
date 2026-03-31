@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Bell, LayoutGrid, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { logout } from "../lib/auth";
+import ThemeToggle from "./ThemeToggle";
 
 export default function AppNavbar() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export default function AppNavbar() {
           >
             <LayoutGrid size={20} />
           </button>
+          <ThemeToggle />
 
           {/* User Avatar / Menu */}
           <div className="relative">
