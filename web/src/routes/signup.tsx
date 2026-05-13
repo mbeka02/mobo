@@ -23,6 +23,10 @@ const signupSchema = z
   .object({
     fullName: z.string().min(2, "Name must be at least 2 characters"),
     email: z.string().email("Please enter a valid email address"),
+    telephoneNumber: z
+      .string()
+      .min(1, "Phone number is required")
+      .max(15, "Phone number must be at most 15 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
@@ -37,12 +41,14 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 function SignupPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
       fullName: "",
       email: "",
+      telephoneNumber: "",
       password: "",
       confirmPassword: "",
     },
@@ -50,7 +56,12 @@ function SignupPage() {
 
   const onSubmit = async (values: SignupFormValues) => {
     try {
-      await signup(values.fullName, values.email, values.password);
+      await signup(
+        values.fullName,
+        values.email,
+        values.telephoneNumber,
+        values.password,
+      );
       toast.success("Account created! Welcome to Mobo.");
       navigate({ to: "/home" });
     } catch (err) {
@@ -206,6 +217,27 @@ function SignupPage() {
 
               <FormField
                 control={form.control}
+                name="telephoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[var(--on-surface-variant)] font-label text-xs font-bold tracking-[0.08em] uppercase">
+                      Phone Number
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        type="tel"
+                        placeholder="+254 700 000 000"
+                        className="h-auto bg-[var(--surface-container-high)] text-[var(--on-surface)] rounded-xl px-4 py-4 text-sm font-body border-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] placeholder:text-[var(--on-surface-variant)]/50"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -247,12 +279,27 @@ function SignupPage() {
                       Confirm Password
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Re-enter your password"
-                        className="h-auto bg-[var(--surface-container-high)] text-[var(--on-surface)] rounded-xl px-4 py-4 text-sm font-body border-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] placeholder:text-[var(--on-surface-variant)]/50"
-                        {...field}
-                      />
+                      <div className="relative">
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="Re-enter your password"
+                          className="h-auto bg-[var(--surface-container-high)] text-[var(--on-surface)] rounded-xl px-4 py-4 text-sm font-body border-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] pr-12"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--on-surface-variant)] hover:text-[var(--on-surface)]"
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={20} />
+                          ) : (
+                            <Eye size={20} />
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
