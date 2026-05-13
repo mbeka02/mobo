@@ -52,9 +52,15 @@ export async function login(email: string, password: string): Promise<User> {
 export async function signup(
   full_name: string,
   email: string,
+  telephone_number: string,
   password: string,
 ): Promise<User> {
-  return api.post<User>('/auth/signup', { full_name, email, password })
+  return api.post<User>('/auth/signup', {
+    full_name,
+    email,
+    telephone_number,
+    password,
+  })
 }
 
 export async function getCurrentUser(): Promise<User> {
