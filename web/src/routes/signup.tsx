@@ -15,7 +15,7 @@ import {
 } from "../components/ui/form";
 import { Input } from "../components/ui/input";
 import { signup, redirectToGoogleOAuth, isAPIError } from "../lib/auth";
-
+import validator from "validator";
 export const Route = createFileRoute("/signup")({ component: SignupPage });
 
 /* ─── Schema ─── */
@@ -25,8 +25,7 @@ const signupSchema = z
     email: z.string().email("Please enter a valid email address"),
     telephoneNumber: z
       .string()
-      .min(1, "Phone number is required")
-      .max(15, "Phone number must be at most 15 characters"),
+      .refine(validator.isMobilePhone, { message: "Please enter a valid phone number" }),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
