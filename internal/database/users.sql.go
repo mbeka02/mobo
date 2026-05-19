@@ -20,7 +20,7 @@ INSERT INTO users(
     full_name,
     verified_at
 ) VALUES($1, $2, $3, $4, NULL) 
-RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+RETURNING id, email, role, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
 `
 
 type CreateLocalUserParams struct {
@@ -41,6 +41,7 @@ func (q *Queries) CreateLocalUser(ctx context.Context, arg CreateLocalUserParams
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
@@ -61,7 +62,7 @@ INSERT INTO users(
     profile_image_url,
     verified_at
 ) VALUES($1, $2, $3, $4) 
-RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+RETURNING id, email, role, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -82,6 +83,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
@@ -120,7 +122,7 @@ func (q *Queries) GetIdentityByProvider(ctx context.Context, arg GetIdentityByPr
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
+SELECT id, email, role, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
 WHERE email = $1 AND deleted_at IS NULL
 `
 
@@ -130,6 +132,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
@@ -144,7 +147,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
+SELECT id, email, role, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at FROM users 
 WHERE id = $1 AND deleted_at IS NULL
 `
 
@@ -154,6 +157,7 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
@@ -168,7 +172,7 @@ func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByProvider = `-- name: GetUserByProvider :one
-SELECT u.id, u.email, u.telephone_number, u.password_hash, u.full_name, u.profile_image_url, u.user_name, u.created_at, u.updated_at, u.verified_at, u.deleted_at 
+SELECT u.id, u.email, u.role, u.telephone_number, u.password_hash, u.full_name, u.profile_image_url, u.user_name, u.created_at, u.updated_at, u.verified_at, u.deleted_at 
 FROM users u
 JOIN user_identities ui ON u.id = ui.user_id
 WHERE ui.provider = $1 
@@ -187,6 +191,7 @@ func (q *Queries) GetUserByProvider(ctx context.Context, arg GetUserByProviderPa
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
@@ -233,7 +238,7 @@ UPDATE users
 SET password_hash = $2, 
     updated_at = now() 
 WHERE id = $1 
-RETURNING id, email, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
+RETURNING id, email, role, telephone_number, password_hash, full_name, profile_image_url, user_name, created_at, updated_at, verified_at, deleted_at
 `
 
 type UpdateUserPasswordParams struct {
@@ -247,6 +252,7 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 	err := row.Scan(
 		&i.ID,
 		&i.Email,
+		&i.Role,
 		&i.TelephoneNumber,
 		&i.PasswordHash,
 		&i.FullName,
