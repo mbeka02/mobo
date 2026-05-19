@@ -18,3 +18,5 @@ sql:
           - db_type: "text"
             go_type:
               type: "string"
+          - db_type: "user_role"
+            go_type: "github.com/mbeka02/ticketing-service/internal/model.Role"
