@@ -20,15 +20,18 @@ type Payload struct {
 	ExpiresAt time.Time `json:"expires_at"`
 	UserID    uuid.UUID `json:"user_id"`
 	TokenType TokenType `json:"token_type"`
+	Role      string    `json:"role"`
 	jwt.RegisteredClaims
 }
 
-func NewPayload(userId uuid.UUID, email string, tokenType TokenType, duration time.Duration) *Payload {
+func NewPayload(userId uuid.UUID, email, role string, tokenType TokenType, duration time.Duration) *Payload {
 	now := time.Now()
 	return &Payload{
 		UserID:    userId,
 		Email:     email,
 		TokenType: tokenType,
+		Role:      role,
+
 		IssuedAt:  now,
 		ExpiresAt: now.Add(duration),
 		RegisteredClaims: jwt.RegisteredClaims{

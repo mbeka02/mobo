@@ -17,6 +17,7 @@ type contextKey string
 const (
 	UserIDKey contextKey = "user_id"
 	EmailKey  contextKey = "email"
+	RoleKey   contextKey = "role"
 )
 
 func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDuration time.Duration) func(http.Handler) http.Handler {
@@ -25,6 +26,7 @@ func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDurati
 			ctx := r.Context()
 			var userID uuid.UUID
 			var email string
+			var role string
 			var found bool
 
 			// 1. Try access token cookie
@@ -39,6 +41,7 @@ func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDurati
 					}
 					userID = claims.UserID
 					email = claims.Email
+					role = claims.Role
 					found = true
 					logger.DebugCtx(ctx, "authenticated via access token",
 						zap.String("user_id", userID.String()),
@@ -56,13 +59,14 @@ func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDurati
 								return
 							}
 							// Silently rotate both cookies
-							if err := auth.SetTokenCookies(w, maker, refreshClaims.UserID, refreshClaims.Email, isProd, accessDuration, refreshDuration); err != nil {
+							if err := auth.SetTokenCookies(w, maker, refreshClaims.UserID, refreshClaims.Email, refreshClaims.Role, isProd, accessDuration, refreshDuration); err != nil {
 								logger.ErrorCtx(ctx, "failed to rotate token cookies", zap.Error(err))
 								http.Error(w, "unauthorized", http.StatusUnauthorized)
 								return
 							}
 							userID = refreshClaims.UserID
 							email = refreshClaims.Email
+							role = refreshClaims.Role
 							found = true
 							logger.InfoCtx(ctx, "token rotation completed",
 								zap.String("user_id", userID.String()),
@@ -86,9 +90,21 @@ func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDurati
 
 			ctx = context.WithValue(ctx, UserIDKey, userID)
 			ctx = context.WithValue(ctx, EmailKey, email)
+			ctx = context.WithValue(ctx, RoleKey, role)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func AdminMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		role, ok := r.Context().Value(RoleKey).(string)
+		if !ok || role != "admin" {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Helper for handlers to pull the user ID back out
