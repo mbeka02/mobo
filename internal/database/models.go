@@ -11,7 +11,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/mbeka02/ticketing-service/internal/model"
 )
 
 type UserRole string
@@ -126,7 +125,7 @@ type Showtime struct {
 type User struct {
 	ID              uuid.UUID          `json:"id"`
 	Email           string             `json:"email"`
-	Role            model.Role         `json:"role"`
+	Role            UserRole           `json:"role"`
 	TelephoneNumber *string            `json:"telephone_number"`
 	PasswordHash    *string            `json:"password_hash"`
 	FullName        string             `json:"full_name"`
