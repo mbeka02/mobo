@@ -10,6 +10,7 @@ import (
 type User struct {
 	ID              uuid.UUID
 	Email           string
+	Role            string
 	TelephoneNumber *string
 	PasswordHash    *string
 	FullName        string
@@ -24,6 +25,7 @@ func FromDatabaseUser(dbUser *database.User) *User {
 	return &User{
 		ID:              dbUser.ID,
 		Email:           dbUser.Email,
+		Role:            string(dbUser.Role),
 		TelephoneNumber: dbUser.TelephoneNumber,
 		PasswordHash:    dbUser.PasswordHash,
 		FullName:        dbUser.FullName,
@@ -39,6 +41,7 @@ func FromGetUserByEmailRow(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
+		Role:            string(row.Role),
 		TelephoneNumber: row.TelephoneNumber,
 		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,
@@ -54,6 +57,7 @@ func FromGetUserByID(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
+		Role:            string(row.Role),
 		TelephoneNumber: row.TelephoneNumber,
 		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,
@@ -69,6 +73,7 @@ func FromGetUserByProviderRow(row *database.User) *User {
 	return &User{
 		ID:              row.ID,
 		Email:           row.Email,
+		Role:            string(row.Role),
 		TelephoneNumber: row.TelephoneNumber,
 		PasswordHash:    row.PasswordHash,
 		FullName:        row.FullName,

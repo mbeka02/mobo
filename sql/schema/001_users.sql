@@ -1,7 +1,9 @@
--- +goose Up 
+-- +goose Up
+CREATE TYPE user_role AS ENUM ('customer', 'admin');
 CREATE TABLE IF NOT EXISTS users(
 id UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
 email varchar(256) UNIQUE NOT NULL,
+role user_role NOT NULL DEFAULT 'customer',
 telephone_number varchar(16),
 password_hash varchar,
 full_name varchar(256) NOT NULL,

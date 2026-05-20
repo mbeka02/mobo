@@ -12,12 +12,12 @@ const (
 	RefreshTokenCookie = "refresh_token"
 )
 
-func SetTokenCookies(w http.ResponseWriter, maker Maker, userID uuid.UUID, email string, isSecure bool, accessDuration, refreshDuration time.Duration) error {
-	access, err := maker.Create(userID, email, AccessToken, accessDuration)
+func SetTokenCookies(w http.ResponseWriter, maker Maker, userID uuid.UUID, email, role string, isSecure bool, accessDuration, refreshDuration time.Duration) error {
+	access, err := maker.Create(userID, email, role, AccessToken, accessDuration)
 	if err != nil {
 		return err
 	}
-	refresh, err := maker.Create(userID, email, RefreshToken, refreshDuration)
+	refresh, err := maker.Create(userID, email, role, RefreshToken, refreshDuration)
 	if err != nil {
 		return err
 	}
@@ -43,4 +43,3 @@ func setCookie(w http.ResponseWriter, name, value string, dur time.Duration, sec
 		SameSite: http.SameSiteLaxMode,
 	})
 }
-

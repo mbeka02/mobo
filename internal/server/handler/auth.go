@@ -18,19 +18,19 @@ import (
 )
 
 type AuthHandler struct {
-	authService      service.AuthService
-	tokenMaker       auth.Maker
-	isProduction     bool
-	accessDuration   time.Duration
-	refreshDuration  time.Duration
-	frontendURL      string
+	authService     service.AuthService
+	tokenMaker      auth.Maker
+	isProduction    bool
+	accessDuration  time.Duration
+	refreshDuration time.Duration
+	frontendURL     string
 }
 
 func NewAuthHandler(svc service.AuthService, maker auth.Maker, isProduction bool, accessDuration, refreshDuration time.Duration, frontendURL string) *AuthHandler {
 	return &AuthHandler{
-		authService:      svc,
-		tokenMaker:       maker,
-		isProduction:     isProduction,
+		authService:     svc,
+		tokenMaker:      maker,
+		isProduction:    isProduction,
 		accessDuration:  accessDuration,
 		refreshDuration: refreshDuration,
 		frontendURL:     frontendURL,
@@ -59,7 +59,7 @@ func (h *AuthHandler) SignupHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set JWT token cookies
-	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, user.Role, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
 		logger.ErrorCtx(ctx, "failed to set token cookies", zap.Error(err))
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
@@ -98,7 +98,7 @@ func (h *AuthHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set JWT token cookies
-	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, user.Role, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
 		logger.ErrorCtx(ctx, "failed to set token cookies", zap.Error(err))
 		respondWithError(w, http.StatusInternalServerError, err)
 		return
@@ -188,7 +188,7 @@ func (h *AuthHandler) GetAuthCallbackHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	// Set JWT token cookies for unified auth
-	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
+	if err := auth.SetTokenCookies(w, h.tokenMaker, user.ID, user.Email, user.Role, h.isProduction, h.accessDuration, h.refreshDuration); err != nil {
 		logger.ErrorCtx(ctx, "failed to set token cookies after OAuth",
 			zap.Error(err),
 			zap.String("user_id", user.ID.String()),
