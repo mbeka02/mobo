@@ -17,7 +17,6 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// 1. Recoverer should be first to catch panics from all other middleware
 	r.Use(middleware.Recoverer)
 
 	// RealIP extracts real client IP
@@ -29,10 +28,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Logging middleware (uses the request ID from step 3)
 	r.Use(customMiddleware.LoggingMiddleware)
 
-	// 5. Rate limiting
+	// Rate limiting
 	r.Use(httprate.LimitByIP(100, time.Minute))
 
-	// 6. CORS
+	// CORS
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
