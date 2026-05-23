@@ -26,7 +26,7 @@ func (ur *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Use
 	if err != nil {
 		return nil, err
 	}
-	return model.FromGetUserByID(&row), nil
+	return model.FromDatabaseUser(&row), nil
 }
 
 func (ur *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -34,5 +34,5 @@ func (ur *userRepository) GetByEmail(ctx context.Context, email string) (*model.
 	if err != nil {
 		return nil, err
 	}
-	return model.FromGetUserByEmailRow(&row), nil
+	return model.FromDatabaseUser(&row), nil
 }

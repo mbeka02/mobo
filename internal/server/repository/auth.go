@@ -44,7 +44,7 @@ func (r *authRepository) GetUserByProvider(ctx context.Context, provider, provid
 		return nil, err
 	}
 
-	return model.FromGetUserByProviderRow(&dbUser), nil
+	return model.FromDatabaseUser(&dbUser), nil
 }
 
 func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*model.User, error) {
@@ -52,7 +52,7 @@ func (r *authRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 	if err != nil {
 		return nil, err
 	}
-	return model.FromGetUserByEmailRow(&dbUser), nil
+	return model.FromDatabaseUser(&dbUser), nil
 }
 
 func (r *authRepository) CreateUser(ctx context.Context, user CreateUserParams) (*model.User, error) {

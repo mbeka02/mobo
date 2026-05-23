@@ -17,7 +17,6 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 
-	// 1. Recoverer should be first to catch panics from all other middleware
 	r.Use(middleware.Recoverer)
 
 	// RealIP extracts real client IP
@@ -29,10 +28,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	// Logging middleware (uses the request ID from step 3)
 	r.Use(customMiddleware.LoggingMiddleware)
 
-	// 5. Rate limiting
+	// Rate limiting
 	r.Use(httprate.LimitByIP(100, time.Minute))
 
-	// 6. CORS
+	// CORS
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
@@ -56,11 +55,39 @@ func (s *Server) RegisterRoutes() http.Handler {
 		r.Post("/auth/login", s.handlers.Auth.LoginHandler)
 		r.Post("/auth/logout", s.handlers.Auth.LogoutHandler)
 
+		// Public listings
+		r.Get("/movies", s.handlers.Movie.ListMoviesPublicHandler)
+		r.Get("/movies/{movieId}", s.handlers.Movie.GetMovieHandler)
+		r.Get("/movies/{movieId}/showtimes", s.handlers.Showtime.ListShowtimesByMovieHandler)
+		r.Get("/venues", s.handlers.Venue.ListVenuesHandler)
+		r.Get("/venues/{venueId}", s.handlers.Venue.GetVenueHandler)
+		r.Get("/showtimes/{showtimeId}", s.handlers.Showtime.GetShowtimeHandler)
+
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(customMiddleware.AuthMiddleware(s.tokenMaker, s.config.IsProduction(), s.config.AccessTokenDuration, s.config.RefreshTokenDuration))
 
 			r.Get("/me", s.handlers.Auth.GetCurrentUser)
+
+			// Admin only routes
+			r.Group(func(r chi.Router) {
+				r.Use(customMiddleware.AdminMiddleware)
+
+				// Admin Movies
+				r.Get("/admin/movies", s.handlers.Movie.ListMoviesAdminHandler)
+				r.Post("/admin/movies", s.handlers.Movie.AddMovieHandler)
+				r.Patch("/admin/movies/{movieId}", s.handlers.Movie.UpdateMovieHandler)
+				r.Delete("/admin/movies/{movieId}", s.handlers.Movie.DeleteMovieHandler)
+
+				// Admin Showtimes
+				r.Get("/admin/showtimes", s.handlers.Showtime.ListShowtimesAdminHandler)
+				r.Post("/admin/showtimes", s.handlers.Showtime.CreateShowtimeHandler)
+				r.Patch("/admin/showtimes/{showtimeId}", s.handlers.Showtime.UpdateShowtimeHandler)
+				r.Delete("/admin/showtimes/{showtimeId}", s.handlers.Showtime.DeleteShowtimeHandler)
+
+				// Admin Venues
+				r.Post("/admin/venues", s.handlers.Venue.CreateVenueHandler)
+			})
 		})
 	})
 

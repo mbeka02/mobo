@@ -124,6 +124,23 @@ func (q *QueryParamExtractor) GetBool(key string, defaultVal ...bool) bool {
 	return result
 }
 
+// parsePagination extracts page and limit from the query string and returns limit and offset for SQL
+func parsePagination(r *http.Request) (limit, offset int32) {
+	extractor := NewQueryParamExtractor(r)
+	page := extractor.GetInt32("page", 1)
+	if page < 1 {
+		page = 1
+	}
+
+	limit = extractor.GetInt32("limit", 20)
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+
+	offset = (page - 1) * limit
+	return limit, offset
+}
+
 var ErrInvalidJSON = errors.New("invalid JSON payload")
 
 // respondWithJSON handles writing JSON responses

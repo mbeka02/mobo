@@ -108,7 +108,7 @@ func (q *Queries) GetMovieById(ctx context.Context, id int64) (GetMovieByIdRow, 
 	return i, err
 }
 
-const getMovies = `-- name: GetMovies :many
+const getMoviesAdmin = `-- name: GetMoviesAdmin :many
 SELECT id,title,description,runtime,genre,age_rating,director,poster_url,release_date
 ,created_at,updated_at
 FROM movies 
@@ -117,12 +117,12 @@ ORDER BY release_date DESC
 LIMIT $1 OFFSET $2
 `
 
-type GetMoviesParams struct {
+type GetMoviesAdminParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-type GetMoviesRow struct {
+type GetMoviesAdminRow struct {
 	ID          int64              `json:"id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
@@ -136,15 +136,16 @@ type GetMoviesRow struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
-func (q *Queries) GetMovies(ctx context.Context, arg GetMoviesParams) ([]GetMoviesRow, error) {
-	rows, err := q.db.Query(ctx, getMovies, arg.Limit, arg.Offset)
+// admin listing , gets all the movies even if they aren't showing.
+func (q *Queries) GetMoviesAdmin(ctx context.Context, arg GetMoviesAdminParams) ([]GetMoviesAdminRow, error) {
+	rows, err := q.db.Query(ctx, getMoviesAdmin, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetMoviesRow{}
+	items := []GetMoviesAdminRow{}
 	for rows.Next() {
-		var i GetMoviesRow
+		var i GetMoviesAdminRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -166,4 +167,110 @@ func (q *Queries) GetMovies(ctx context.Context, arg GetMoviesParams) ([]GetMovi
 		return nil, err
 	}
 	return items, nil
+}
+
+const getMoviesPublic = `-- name: GetMoviesPublic :many
+SELECT DISTINCT m.id, m.title, m.description, m.runtime, m.genre, m.age_rating, m.director, m.poster_url, m.release_date, m.created_at, m.updated_at, m.deleted_at FROM movies m
+JOIN showtimes s ON s.movie_id = m.id
+WHERE m.deleted_at IS NULL
+  AND s.start_time > now()
+  AND s.deleted_at IS NULL
+ORDER BY s.start_time ASC
+LIMIT $1 OFFSET $2
+`
+
+type GetMoviesPublicParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+// public listing: only movies with at least one future showtime
+func (q *Queries) GetMoviesPublic(ctx context.Context, arg GetMoviesPublicParams) ([]Movie, error) {
+	rows, err := q.db.Query(ctx, getMoviesPublic, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Movie{}
+	for rows.Next() {
+		var i Movie
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Runtime,
+			&i.Genre,
+			&i.AgeRating,
+			&i.Director,
+			&i.PosterUrl,
+			&i.ReleaseDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateMovie = `-- name: UpdateMovie :one
+UPDATE movies SET
+  title = COALESCE($1, title),
+  description = COALESCE($2, description),
+  runtime = COALESCE($3, runtime),
+  genre = COALESCE($4, genre),
+  age_rating = COALESCE($5, age_rating),
+  director = COALESCE($6, director),
+  poster_url = COALESCE($7, poster_url),
+  release_date = COALESCE($8, release_date),
+  updated_at = now()
+WHERE id = $9 AND deleted_at IS NULL
+RETURNING id, title, description, runtime, genre, age_rating, director, poster_url, release_date, created_at, updated_at, deleted_at
+`
+
+type UpdateMovieParams struct {
+	Title       *string     `json:"title"`
+	Description *string     `json:"description"`
+	Runtime     *int32      `json:"runtime"`
+	Genre       *string     `json:"genre"`
+	AgeRating   *string     `json:"age_rating"`
+	Director    *string     `json:"director"`
+	PosterUrl   *string     `json:"poster_url"`
+	ReleaseDate pgtype.Date `json:"release_date"`
+	ID          int64       `json:"id"`
+}
+
+func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie, error) {
+	row := q.db.QueryRow(ctx, updateMovie,
+		arg.Title,
+		arg.Description,
+		arg.Runtime,
+		arg.Genre,
+		arg.AgeRating,
+		arg.Director,
+		arg.PosterUrl,
+		arg.ReleaseDate,
+		arg.ID,
+	)
+	var i Movie
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Runtime,
+		&i.Genre,
+		&i.AgeRating,
+		&i.Director,
+		&i.PosterUrl,
+		&i.ReleaseDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
