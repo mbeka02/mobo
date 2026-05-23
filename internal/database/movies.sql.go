@@ -108,7 +108,7 @@ func (q *Queries) GetMovieById(ctx context.Context, id int64) (GetMovieByIdRow, 
 	return i, err
 }
 
-const getMovies = `-- name: GetMovies :many
+const getMoviesAdmin = `-- name: GetMoviesAdmin :many
 SELECT id,title,description,runtime,genre,age_rating,director,poster_url,release_date
 ,created_at,updated_at
 FROM movies 
@@ -117,12 +117,12 @@ ORDER BY release_date DESC
 LIMIT $1 OFFSET $2
 `
 
-type GetMoviesParams struct {
+type GetMoviesAdminParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-type GetMoviesRow struct {
+type GetMoviesAdminRow struct {
 	ID          int64              `json:"id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
@@ -136,15 +136,16 @@ type GetMoviesRow struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
-func (q *Queries) GetMovies(ctx context.Context, arg GetMoviesParams) ([]GetMoviesRow, error) {
-	rows, err := q.db.Query(ctx, getMovies, arg.Limit, arg.Offset)
+// admin listing , gets all the movies even if they aren't showing.
+func (q *Queries) GetMoviesAdmin(ctx context.Context, arg GetMoviesAdminParams) ([]GetMoviesAdminRow, error) {
+	rows, err := q.db.Query(ctx, getMoviesAdmin, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetMoviesRow{}
+	items := []GetMoviesAdminRow{}
 	for rows.Next() {
-		var i GetMoviesRow
+		var i GetMoviesAdminRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -157,6 +158,55 @@ func (q *Queries) GetMovies(ctx context.Context, arg GetMoviesParams) ([]GetMovi
 			&i.ReleaseDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMoviesPublic = `-- name: GetMoviesPublic :many
+SELECT DISTINCT m.id, m.title, m.description, m.runtime, m.genre, m.age_rating, m.director, m.poster_url, m.release_date, m.created_at, m.updated_at, m.deleted_at FROM movies m
+JOIN showtimes s ON s.movie_id = m.id
+WHERE m.deleted_at IS NULL
+  AND s.start_time > now()
+  AND s.deleted_at IS NULL
+ORDER BY s.start_time ASC
+LIMIT $1 OFFSET $2
+`
+
+type GetMoviesPublicParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+// public listing: only movies with at least one future showtime
+func (q *Queries) GetMoviesPublic(ctx context.Context, arg GetMoviesPublicParams) ([]Movie, error) {
+	rows, err := q.db.Query(ctx, getMoviesPublic, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Movie{}
+	for rows.Next() {
+		var i Movie
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Runtime,
+			&i.Genre,
+			&i.AgeRating,
+			&i.Director,
+			&i.PosterUrl,
+			&i.ReleaseDate,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
