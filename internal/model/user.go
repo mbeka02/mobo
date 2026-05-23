@@ -37,54 +37,6 @@ func FromDatabaseUser(dbUser *database.User) *User {
 	}
 }
 
-func FromGetUserByEmailRow(row *database.User) *User {
-	return &User{
-		ID:              row.ID,
-		Email:           row.Email,
-		Role:            string(row.Role),
-		TelephoneNumber: row.TelephoneNumber,
-		PasswordHash:    row.PasswordHash,
-		FullName:        row.FullName,
-		ProfileImageURL: row.ProfileImageUrl,
-		UserName:        row.UserName,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       &row.UpdatedAt.Time,
-		VerifiedAt:      &row.VerifiedAt.Time,
-	}
-}
-
-func FromGetUserByID(row *database.User) *User {
-	return &User{
-		ID:              row.ID,
-		Email:           row.Email,
-		Role:            string(row.Role),
-		TelephoneNumber: row.TelephoneNumber,
-		PasswordHash:    row.PasswordHash,
-		FullName:        row.FullName,
-		ProfileImageURL: row.ProfileImageUrl,
-		UserName:        row.UserName,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       &row.UpdatedAt.Time,
-		VerifiedAt:      &row.VerifiedAt.Time,
-	}
-}
-
-func FromGetUserByProviderRow(row *database.User) *User {
-	return &User{
-		ID:              row.ID,
-		Email:           row.Email,
-		Role:            string(row.Role),
-		TelephoneNumber: row.TelephoneNumber,
-		PasswordHash:    row.PasswordHash,
-		FullName:        row.FullName,
-		ProfileImageURL: row.ProfileImageUrl,
-		UserName:        row.UserName,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       &row.UpdatedAt.Time,
-		VerifiedAt:      &row.VerifiedAt.Time,
-	}
-}
-
 func (u *User) ToResponse() UserResponse {
 	var verifiedAt time.Time
 	if u.VerifiedAt != nil {

@@ -210,6 +210,7 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email, _ := ctx.Value(customMiddleware.EmailKey).(string)
+	role, _ := customMiddleware.RoleFromContext(ctx)
 
 	logger.DebugCtx(ctx, "fetching current user",
 		zap.String("user_id", userID.String()),
@@ -221,6 +222,7 @@ func (h *AuthHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 		Data: map[string]string{
 			"user_id": userID.String(),
 			"email":   email,
+			"role":    role,
 		},
 	})
 }

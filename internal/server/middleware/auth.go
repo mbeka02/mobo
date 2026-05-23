@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mbeka02/ticketing-service/internal/auth"
+	"github.com/mbeka02/ticketing-service/internal/database"
 	"github.com/mbeka02/ticketing-service/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -98,8 +99,8 @@ func AuthMiddleware(maker auth.Maker, isProd bool, accessDuration, refreshDurati
 
 func AdminMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		role, ok := r.Context().Value(RoleKey).(string)
-		if !ok || role != "admin" {
+		role, ok := RoleFromContext(r.Context())
+		if !ok || role != string(database.UserRoleAdmin) {
 			http.Error(w, "forbidden", http.StatusForbidden)
 			return
 		}
@@ -111,4 +112,10 @@ func AdminMiddleware(next http.Handler) http.Handler {
 func UserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(UserIDKey).(uuid.UUID)
 	return id, ok
+}
+
+// Helper for handlers to pull the role back out
+func RoleFromContext(ctx context.Context) (string, bool) {
+	role, ok := ctx.Value(RoleKey).(string)
+	return role, ok
 }
