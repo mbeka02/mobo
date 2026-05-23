@@ -217,3 +217,60 @@ func (q *Queries) GetMoviesPublic(ctx context.Context, arg GetMoviesPublicParams
 	}
 	return items, nil
 }
+
+const updateMovie = `-- name: UpdateMovie :one
+UPDATE movies SET
+  title = COALESCE($1, title),
+  description = COALESCE($2, description),
+  runtime = COALESCE($3, runtime),
+  genre = COALESCE($4, genre),
+  age_rating = COALESCE($5, age_rating),
+  director = COALESCE($6, director),
+  poster_url = COALESCE($7, poster_url),
+  release_date = COALESCE($8, release_date),
+  updated_at = now()
+WHERE id = $9 AND deleted_at IS NULL
+RETURNING id, title, description, runtime, genre, age_rating, director, poster_url, release_date, created_at, updated_at, deleted_at
+`
+
+type UpdateMovieParams struct {
+	Title       *string     `json:"title"`
+	Description *string     `json:"description"`
+	Runtime     *int32      `json:"runtime"`
+	Genre       *string     `json:"genre"`
+	AgeRating   *string     `json:"age_rating"`
+	Director    *string     `json:"director"`
+	PosterUrl   *string     `json:"poster_url"`
+	ReleaseDate pgtype.Date `json:"release_date"`
+	ID          int64       `json:"id"`
+}
+
+func (q *Queries) UpdateMovie(ctx context.Context, arg UpdateMovieParams) (Movie, error) {
+	row := q.db.QueryRow(ctx, updateMovie,
+		arg.Title,
+		arg.Description,
+		arg.Runtime,
+		arg.Genre,
+		arg.AgeRating,
+		arg.Director,
+		arg.PosterUrl,
+		arg.ReleaseDate,
+		arg.ID,
+	)
+	var i Movie
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Runtime,
+		&i.Genre,
+		&i.AgeRating,
+		&i.Director,
+		&i.PosterUrl,
+		&i.ReleaseDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}

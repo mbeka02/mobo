@@ -32,3 +32,16 @@ SELECT id,title,description,runtime,genre,age_rating,director,poster_url,release
 FROM movies 
 WHERE id = $1 AND deleted_at IS NULL;
 
+-- name: UpdateMovie :one
+UPDATE movies SET
+  title = COALESCE(sqlc.narg('title'), title),
+  description = COALESCE(sqlc.narg('description'), description),
+  runtime = COALESCE(sqlc.narg('runtime'), runtime),
+  genre = COALESCE(sqlc.narg('genre'), genre),
+  age_rating = COALESCE(sqlc.narg('age_rating'), age_rating),
+  director = COALESCE(sqlc.narg('director'), director),
+  poster_url = COALESCE(sqlc.narg('poster_url'), poster_url),
+  release_date = COALESCE(sqlc.narg('release_date'), release_date),
+  updated_at = now()
+WHERE id = sqlc.arg('id') AND deleted_at IS NULL
+RETURNING *;
