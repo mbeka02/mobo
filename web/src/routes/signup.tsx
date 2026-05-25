@@ -65,7 +65,7 @@ function SignupPage() {
       navigate({ to: "/home" });
     } catch (err) {
       if (isAPIError(err)) {
-        toast.error(err.message);
+        toast.error(err.detail || err.message);
       } else {
         toast.error("Something went wrong. Please try again.");
       }

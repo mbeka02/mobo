@@ -87,6 +87,9 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 				// Admin Venues
 				r.Post("/admin/venues", s.handlers.Venue.CreateVenueHandler)
+
+				// Admin Dashboard
+				r.Get("/admin/dashboard/stats", s.handlers.Dashboard.GetDashboardStatsHandler)
 			})
 		})
 	})
