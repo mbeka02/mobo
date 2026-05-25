@@ -17,24 +17,27 @@ import (
 )
 
 type Handlers struct {
-	Auth     *handler.AuthHandler
-	Movie    *handler.MovieHandler
-	Showtime *handler.ShowtimeHandler
-	Venue    *handler.VenueHandler
+	Auth      *handler.AuthHandler
+	Movie     *handler.MovieHandler
+	Showtime  *handler.ShowtimeHandler
+	Venue     *handler.VenueHandler
+	Dashboard *handler.DashboardHandler
 }
 
 type Services struct {
-	Auth     service.AuthService
-	Movie    service.MovieService
-	Showtime service.ShowtimeService
-	Venue    service.VenueService
+	Auth      service.AuthService
+	Movie     service.MovieService
+	Showtime  service.ShowtimeService
+	Venue     service.VenueService
+	Dashboard service.DashboardService
 }
 
 type Repositories struct {
-	Auth     repository.AuthRepository
-	Movie    repository.MovieRepository
-	Showtime repository.ShowtimeRepository
-	Venue    repository.VenueRepository
+	Auth      repository.AuthRepository
+	Movie     repository.MovieRepository
+	Showtime  repository.ShowtimeRepository
+	Venue     repository.VenueRepository
+	Dashboard repository.DashboardRepository
 }
 
 type Server struct {
@@ -46,28 +49,31 @@ type Server struct {
 
 func initRepositories(store *database.Store) *Repositories {
 	return &Repositories{
-		Auth:     repository.NewAuthRepository(store),
-		Movie:    repository.NewMovieRepository(store),
-		Showtime: repository.NewShowtimeRepository(store),
-		Venue:    repository.NewVenueRepository(store),
+		Auth:      repository.NewAuthRepository(store),
+		Movie:     repository.NewMovieRepository(store),
+		Showtime:  repository.NewShowtimeRepository(store),
+		Venue:     repository.NewVenueRepository(store),
+		Dashboard: repository.NewDashboardRepository(store),
 	}
 }
 
 func initServices(repos *Repositories) *Services {
 	return &Services{
-		Auth:     service.NewAuthService(repos.Auth),
-		Movie:    service.NewMovieService(repos.Movie),
-		Showtime: service.NewShowtimeService(repos.Showtime),
-		Venue:    service.NewVenueService(repos.Venue),
+		Auth:      service.NewAuthService(repos.Auth),
+		Movie:     service.NewMovieService(repos.Movie),
+		Showtime:  service.NewShowtimeService(repos.Showtime),
+		Venue:     service.NewVenueService(repos.Venue),
+		Dashboard: service.NewDashboardService(repos.Dashboard),
 	}
 }
 
 func initHandlers(services *Services, maker auth.Maker, cfg *config.Config) *Handlers {
 	return &Handlers{
-		Auth:     handler.NewAuthHandler(services.Auth, maker, cfg.IsProduction(), cfg.AccessTokenDuration, cfg.RefreshTokenDuration, cfg.FrontendURL),
-		Movie:    handler.NewMovieHandler(services.Movie),
-		Showtime: handler.NewShowtimeHandler(services.Showtime),
-		Venue:    handler.NewVenueHandler(services.Venue),
+		Auth:      handler.NewAuthHandler(services.Auth, maker, cfg.IsProduction(), cfg.AccessTokenDuration, cfg.RefreshTokenDuration, cfg.FrontendURL),
+		Movie:     handler.NewMovieHandler(services.Movie),
+		Showtime:  handler.NewShowtimeHandler(services.Showtime),
+		Venue:     handler.NewVenueHandler(services.Venue),
+		Dashboard: handler.NewDashboardHandler(services.Dashboard),
 	}
 }
 
