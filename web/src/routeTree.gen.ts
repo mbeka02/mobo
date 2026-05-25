@@ -12,7 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as PortalRouteRouteImport } from './routes/portal/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PortalVenuesRouteImport } from './routes/portal/venues'
+import { Route as PortalSettingsRouteImport } from './routes/portal/settings'
+import { Route as PortalSchedulingRouteImport } from './routes/portal/scheduling'
+import { Route as PortalMoviesRouteImport } from './routes/portal/movies'
+import { Route as PortalDashboardRouteImport } from './routes/portal/dashboard'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 
 const SignupRoute = SignupRouteImport.update({
@@ -29,10 +35,40 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRouteRoute = PortalRouteRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const PortalVenuesRoute = PortalVenuesRouteImport.update({
+  id: '/venues',
+  path: '/venues',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalSettingsRoute = PortalSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalSchedulingRoute = PortalSchedulingRouteImport.update({
+  id: '/scheduling',
+  path: '/scheduling',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalMoviesRoute = PortalMoviesRouteImport.update({
+  id: '/movies',
+  path: '/movies',
+  getParentRoute: () => PortalRouteRoute,
+} as any)
+const PortalDashboardRoute = PortalDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PortalRouteRoute,
 } as any)
 const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
   id: '/home',
@@ -42,40 +78,85 @@ const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/portal': typeof PortalRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/movies': typeof PortalMoviesRoute
+  '/portal/scheduling': typeof PortalSchedulingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/venues': typeof PortalVenuesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/portal': typeof PortalRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/home': typeof AuthenticatedHomeRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/movies': typeof PortalMoviesRoute
+  '/portal/scheduling': typeof PortalSchedulingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/venues': typeof PortalVenuesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/portal': typeof PortalRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/signup': typeof SignupRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/movies': typeof PortalMoviesRoute
+  '/portal/scheduling': typeof PortalSchedulingRoute
+  '/portal/settings': typeof PortalSettingsRoute
+  '/portal/venues': typeof PortalVenuesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/home'
+  fullPaths:
+    | '/'
+    | '/portal'
+    | '/login'
+    | '/signup'
+    | '/home'
+    | '/portal/dashboard'
+    | '/portal/movies'
+    | '/portal/scheduling'
+    | '/portal/settings'
+    | '/portal/venues'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/home'
+  to:
+    | '/'
+    | '/portal'
+    | '/login'
+    | '/signup'
+    | '/home'
+    | '/portal/dashboard'
+    | '/portal/movies'
+    | '/portal/scheduling'
+    | '/portal/settings'
+    | '/portal/venues'
   id:
     | '__root__'
     | '/'
+    | '/portal'
     | '/_authenticated'
     | '/login'
     | '/signup'
     | '/_authenticated/home'
+    | '/portal/dashboard'
+    | '/portal/movies'
+    | '/portal/scheduling'
+    | '/portal/settings'
+    | '/portal/venues'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PortalRouteRoute: typeof PortalRouteRouteWithChildren
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   SignupRoute: typeof SignupRoute
@@ -104,12 +185,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/portal/venues': {
+      id: '/portal/venues'
+      path: '/venues'
+      fullPath: '/portal/venues'
+      preLoaderRoute: typeof PortalVenuesRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/settings': {
+      id: '/portal/settings'
+      path: '/settings'
+      fullPath: '/portal/settings'
+      preLoaderRoute: typeof PortalSettingsRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/scheduling': {
+      id: '/portal/scheduling'
+      path: '/scheduling'
+      fullPath: '/portal/scheduling'
+      preLoaderRoute: typeof PortalSchedulingRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/movies': {
+      id: '/portal/movies'
+      path: '/movies'
+      fullPath: '/portal/movies'
+      preLoaderRoute: typeof PortalMoviesRouteImport
+      parentRoute: typeof PortalRouteRoute
+    }
+    '/portal/dashboard': {
+      id: '/portal/dashboard'
+      path: '/dashboard'
+      fullPath: '/portal/dashboard'
+      preLoaderRoute: typeof PortalDashboardRouteImport
+      parentRoute: typeof PortalRouteRoute
     }
     '/_authenticated/home': {
       id: '/_authenticated/home'
@@ -120,6 +243,26 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface PortalRouteRouteChildren {
+  PortalDashboardRoute: typeof PortalDashboardRoute
+  PortalMoviesRoute: typeof PortalMoviesRoute
+  PortalSchedulingRoute: typeof PortalSchedulingRoute
+  PortalSettingsRoute: typeof PortalSettingsRoute
+  PortalVenuesRoute: typeof PortalVenuesRoute
+}
+
+const PortalRouteRouteChildren: PortalRouteRouteChildren = {
+  PortalDashboardRoute: PortalDashboardRoute,
+  PortalMoviesRoute: PortalMoviesRoute,
+  PortalSchedulingRoute: PortalSchedulingRoute,
+  PortalSettingsRoute: PortalSettingsRoute,
+  PortalVenuesRoute: PortalVenuesRoute,
+}
+
+const PortalRouteRouteWithChildren = PortalRouteRoute._addFileChildren(
+  PortalRouteRouteChildren,
+)
 
 interface AuthenticatedRouteChildren {
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
@@ -135,6 +278,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PortalRouteRoute: PortalRouteRouteWithChildren,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,

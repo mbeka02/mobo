@@ -1,10 +1,15 @@
 import { api, type APIError, isAPIError } from '../services/api'
 
 export interface User {
-  id: string
-  full_name: string
+  user_id: string
   email: string
-  created_at: string
+  role: string
+}
+
+interface APIResponseWrapper<T> {
+  status: number
+  message: string
+  data: T
 }
 
 /** Re-export for route-level consumption */
@@ -64,7 +69,8 @@ export async function signup(
 }
 
 export async function getCurrentUser(): Promise<User> {
-  return api.get<User>('/me')
+  const res = await api.get<APIResponseWrapper<User>>('/me')
+  return res.data
 }
 
 export async function logout(): Promise<void> {
