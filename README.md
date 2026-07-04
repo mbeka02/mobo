@@ -2,48 +2,54 @@
 
 Mobo is a modern, high-performance backend API for a movie theater ticketing and reservation system. It provides a robust set of features for managing users, movies, showtimes, venues, and aggregated analytics. The system supports secure authentication (including OAuth), role-based access control (Admin vs. Customer), and transactionally safe bookings.
 
-## Architecture
+## System Architecture
 
-Mobo follows a strict **Domain-Driven Design (DDD)** architecture. The codebase is organized by business capabilities (domains) rather than technical concerns (layers). This ensures that business logic is completely isolated from infrastructure, making the application highly maintainable, testable, and resilient to change.
-
-### Dependency Flow
-
-The core principle is that **Domain packages are pure**. They do not import anything from the HTTP transport layer or the database layer. Instead, technology adapters (like the HTTP server and Postgres repositories) depend downward on the domain packages to implement their interfaces.
+Mobo is designed for high availability and is deployed in a production environment using a reverse proxy and multiple backend instances.
 
 ```mermaid
 graph TD
-    CMD[cmd/server/main.go] --> HTTP[internal/api]
-    CMD --> PG[internal/postgres]
-    CMD --> AUTH_INFRA[internal/auth]
+    Client[Client Browser / React Web UI] -->|HTTPS| Caddy[Caddy Reverse Proxy & Load Balancer]
+    
+    subgraph VPS[Production VPS]
+        Caddy
+        
+        subgraph API[Systemd Backend Instances]
+            App1[Mobo API - Port 8080]
+            App2[Mobo API - Port 8081]
+            App3[Mobo API - Port 8082]
+        end
+        
+        Caddy -->|Load Balances| App1
+        Caddy -->|Load Balances| App2
+        Caddy -->|Load Balances| App3
+    end
+    
+    subgraph Cloud[Cloud Infrastructure]
+        DB[(NeonDB / PostgreSQL)]
+    end
+    
+    App1 -->|TCP/TLS| DB
+    App2 -->|TCP/TLS| DB
+    App3 -->|TCP/TLS| DB
 
-    HTTP --> USER_DOM[internal/user]
-    HTTP --> MOVIE_DOM[internal/movie]
-    HTTP --> SHOW_DOM[internal/showtime]
-    HTTP --> VENUE_DOM[internal/venue]
-    HTTP --> DASH_DOM[internal/analytics]
-    HTTP --> AUTH_INFRA
-
-    PG --> USER_DOM
-    PG --> MOVIE_DOM
-    PG --> SHOW_DOM
-    PG --> VENUE_DOM
-    PG --> DASH_DOM
-    PG --> DB[internal/dbgen]
-
-    USER_DOM -.- |"NO dependency on"| HTTP
-    USER_DOM -.- |"NO dependency on"| PG
-    MOVIE_DOM -.- |"NO dependency on"| HTTP
-    MOVIE_DOM -.- |"NO dependency on"| PG
-
-    style USER_DOM fill:#2d5a27,stroke:#4caf50
-    style MOVIE_DOM fill:#2d5a27,stroke:#4caf50
-    style SHOW_DOM fill:#2d5a27,stroke:#4caf50
-    style VENUE_DOM fill:#2d5a27,stroke:#4caf50
-    style DASH_DOM fill:#2d5a27,stroke:#4caf50
-    style HTTP fill:#1a3a5c,stroke:#2196f3
-    style PG fill:#1a3a5c,stroke:#2196f3
-    style DB fill:#5a3a1a,stroke:#ff9800
+    style Client fill:#e0f7fa,stroke:#00acc1
+    style Caddy fill:#fff3e0,stroke:#ff9800
+    style App1 fill:#e8f5e9,stroke:#4caf50
+    style App2 fill:#e8f5e9,stroke:#4caf50
+    style App3 fill:#e8f5e9,stroke:#4caf50
+    style DB fill:#e3f2fd,stroke:#2196f3
+    style VPS fill:#f5f5f5,stroke:#bdbdbd,stroke-dasharray: 5 5
+    style Cloud fill:#f5f5f5,stroke:#bdbdbd,stroke-dasharray: 5 5
 ```
+
+- **Frontend:** A React web interface served to the client.
+- **Reverse Proxy:** Caddy handles SSL termination and load balances traffic across the backend instances.
+- **Backend:** 3 independent instances of the Go API running as `systemd` services on a VPS, ensuring redundancy and fault tolerance.
+- **Database:** NeonDB, a serverless cloud PostgreSQL provider, handling all data persistence.
+
+### Software Architecture (Domain-Driven Design)
+
+Internally, the Go backend follows a strict **Domain-Driven Design (DDD)** pattern. The codebase is organized by business capabilities (domains) rather than technical layers. Technology adapters (like the HTTP server and Postgres repositories) depend downward on pure domain packages, ensuring business logic is isolated and testable.
 
 ### Project Structure
 
@@ -51,11 +57,12 @@ graph TD
 ticketing-service/
 ├── cmd/server/                 # Application entry point. Initializes dependencies and starts the server.
 ├── config/                     # Configuration management (Viper) reading from .env.
+├── deploy/                     # Deployment configurations (e.g., Caddyfile, systemd service files).
 ├── internal/
-│   ├── auth/                   # Core authentication logic (JWT generation/verification, OAuth setup, password hashing).
-│   ├── api/                    # HTTP Transport layer (Adapters). Contains Chi router, Handlers, and Middleware.
-│   ├── postgres/               # Database adapter layer. Implements domain repository interfaces and manages pgx connection pooling.
-│   ├── dbgen/                  # Auto-generated SQL code via sqlc. Only imported by the postgres adapter.
+│   ├── auth/                   # Core authentication logic (JWT, OAuth, password hashing).
+│   ├── api/                    # HTTP Transport layer. Contains Chi router, Handlers, and Middleware.
+│   ├── postgres/               # Database adapter layer. Manages pgx connection pooling.
+│   ├── dbgen/                  # Auto-generated SQL code via sqlc.
 │   │
 │   │ # DOMAIN PACKAGES (Pure Business Logic)
 │   ├── analytics/              # Aggregated dashboard metrics and revenue data.
@@ -65,7 +72,8 @@ ticketing-service/
 │   └── venue/                  # Physical theater location management.
 │
 ├── pkg/                        # Reusable, domain-agnostic utilities (e.g., zap logger).
-└── sql/                        # Raw SQL schema migrations and sqlc query definitions.
+├── sql/                        # Raw SQL schema migrations and sqlc query definitions.
+└── web/                        # React frontend / Web UI application.
 ```
 
 ## Tech Stack & Tools
