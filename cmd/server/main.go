@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/mbeka02/ticketing-service/config"
+	"github.com/mbeka02/ticketing-service/internal/api"
 	"github.com/mbeka02/ticketing-service/internal/auth"
-	"github.com/mbeka02/ticketing-service/internal/server"
 	"github.com/mbeka02/ticketing-service/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -43,7 +43,7 @@ func setupServer() (*http.Server, error) {
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	srv, err := server.NewServer(cfg)
+	srv, err := api.NewServer(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup server: %w", err)
 	}
