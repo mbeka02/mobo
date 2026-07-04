@@ -1,6 +1,6 @@
 # Mobo Ticketing Service
 
-Mobo is a modern, high-performance backend API for a movie theater ticketing and reservation system. It provides a robust set of features for managing users, movies, showtimes, venues, and aggregated analytics. The system supports secure authentication (including OAuth), role-based access control (Admin vs. Customer), and transactionally safe bookings.
+Mobo is a modern, high-performance backend API for a movie theatre ticketing and reservation system. It provides a robust set of features for managing users, movies, showtimes, and venues, as well as aggregated analytics. The system supports secure authentication (including OIDC built on OAuth 2.0), role-based access control (Admin vs Customer), and transactionally safe bookings.
 
 ## System Architecture
 
@@ -45,11 +45,11 @@ graph TD
 - **Frontend:** A React web interface served to the client.
 - **Reverse Proxy:** Caddy handles SSL termination and load balances traffic across the backend instances.
 - **Backend:** 3 independent instances of the Go API running as `systemd` services on a VPS, ensuring redundancy and fault tolerance.
-- **Database:** NeonDB, a serverless cloud PostgreSQL provider, handling all data persistence.
+- **Database:** NeonDB, a serverless cloud PostgreSQL provider, handles all data persistence.
 
 ### Software Architecture (Domain-Driven Design)
 
-Internally, the Go backend follows a strict **Domain-Driven Design (DDD)** pattern. The codebase is organized by business capabilities (domains) rather than technical layers. Technology adapters (like the HTTP server and Postgres repositories) depend downward on pure domain packages, ensuring business logic is isolated and testable.
+I'm trying to  follow a strict **Domain-Driven Design (DDD)** pattern. The codebase is organised by business capabilities (domains) rather than technical layers. Technology adapters (like the HTTP server and Postgres repositories) depend downward on pure domain packages, ensuring business logic is isolated and testable.
 
 ### Project Structure
 
@@ -59,8 +59,8 @@ ticketing-service/
 ├── config/                     # Configuration management (Viper) reading from .env.
 ├── deploy/                     # Deployment configurations (e.g., Caddyfile, systemd service files).
 ├── internal/
-│   ├── auth/                   # Core authentication logic (JWT, OAuth, password hashing).
-│   ├── api/                    # HTTP Transport layer. Contains Chi router, Handlers, and Middleware.
+│   ├── auth/                   # Core authentication logic (JWT, OIDC).
+│   ├── api/                    # HTTP Transport layer. Contains Chi router, handlers, and middleware.
 │   ├── postgres/               # Database adapter layer. Manages pgx connection pooling.
 │   ├── dbgen/                  # Auto-generated SQL code via sqlc.
 │   │
@@ -92,7 +92,7 @@ ticketing-service/
 ## Key Features
 
 - **Decoupled Architecture:** Business logic operates independently of how data is stored or served.
-- **Secure Authentication:** Combines local credentials and Google OAuth. Uses secure, HttpOnly, SameSite cookie-based JWTs with short-lived access tokens and longer-lived refresh tokens.
+- **Secure Authentication:** Combines local credentials and OIDC (built on top of OAuth 2). Uses secure, HttpOnly, SameSite cookie-based JWTs with short-lived access tokens and longer-lived refresh tokens.
 - **Role-Based Access:** Distinct `Admin` and `User` roles enforced via middleware.
 - **Transaction Safety:** Repository methods safely wrap complex multi-step operations (like linking an OAuth identity to a new user profile) in atomic PostgreSQL transactions.
 - **Performance Optimized:** Uses `pgxpool` for connection lifecycle management and `httprate` for IP-based rate limiting.
