@@ -131,3 +131,16 @@ ticketing-service/
 ```bash
 go test ./...
 ```
+
+### Async email worker
+
+The API writes welcome-email intents to PostgreSQL in the same transaction as a newly created user. Run the database migrations before enabling the worker, then set these environment variables:
+
+```text
+RABBITMQ_URL=amqps://user:password@broker/vhost
+EMAIL_PROVIDER=resend
+EMAIL_FROM=Mobo <bookings@example.com>
+RESEND_API_KEY=re_...
+```
+
+Start the separate relay/consumer process with `make email-worker`. It publishes the transactional outbox to RabbitMQ, retries provider failures through five delayed queues, and sends terminal failures to the `email.failed` DLQ. See [ASYNC_EMAIL_ARCHITECTURE.md](ASYNC_EMAIL_ARCHITECTURE.md) for the full design.

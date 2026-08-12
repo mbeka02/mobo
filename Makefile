@@ -12,6 +12,10 @@ build:
 # Run the application
 run:
 	@go run cmd/server/main.go
+
+# Run the asynchronous email relay and consumer workers
+email-worker:
+	@go run cmd/email-worker/main.go
 # Test the application
 test:
 	@echo "Testing..."
@@ -43,4 +47,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+.PHONY: all build run email-worker test clean watch docker-run docker-down itest

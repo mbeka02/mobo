@@ -1,5 +1,6 @@
 .env*
 auth_plan.md
+ASYNC_EMAIL_ARCHITECTURE.md
 tmp
 main
 web/design
