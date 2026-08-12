@@ -28,6 +28,18 @@ type Config struct {
 	DatabaseMaxConnections  int           `mapstructure:"DATABASE_MAXCONNECTIONS"`
 	DatabaseMinConnections  int           `mapstructure:"DATABASE_MINCONNECTIONS"`
 	DatabaseMaxConnLifetime time.Duration `mapstructure:"DATABASE_MAXCONNLIFETIME"`
+
+	// Async email worker configuration. These are only required by cmd/email-worker.
+	RabbitMQURL         string        `mapstructure:"RABBITMQ_URL"`
+	EmailProvider       string        `mapstructure:"EMAIL_PROVIDER"`
+	EmailFrom           string        `mapstructure:"EMAIL_FROM"`
+	ResendAPIKey        string        `mapstructure:"RESEND_API_KEY"`
+	EmailWorkerCount    int           `mapstructure:"EMAIL_WORKER_COUNT"`
+	EmailWorkerPrefetch int           `mapstructure:"EMAIL_WORKER_PREFETCH"`
+	EmailSendTimeout    time.Duration `mapstructure:"EMAIL_SEND_TIMEOUT"`
+	OutboxPollInterval  time.Duration `mapstructure:"OUTBOX_POLL_INTERVAL"`
+	OutboxLeaseDuration time.Duration `mapstructure:"OUTBOX_LEASE_DURATION"`
+	OutboxBatchSize     int           `mapstructure:"OUTBOX_BATCH_SIZE"`
 }
 
 type DatabaseConfig struct {
@@ -103,6 +115,16 @@ func bindEnvVars(v *viper.Viper) {
 		"REFRESH_TOKEN_DURATION",
 		"BASE_URL",
 		"FRONTEND_URL",
+		"RABBITMQ_URL",
+		"EMAIL_PROVIDER",
+		"EMAIL_FROM",
+		"RESEND_API_KEY",
+		"EMAIL_WORKER_COUNT",
+		"EMAIL_WORKER_PREFETCH",
+		"EMAIL_SEND_TIMEOUT",
+		"OUTBOX_POLL_INTERVAL",
+		"OUTBOX_LEASE_DURATION",
+		"OUTBOX_BATCH_SIZE",
 	}
 
 	for _, envVar := range envVars {
@@ -129,6 +151,44 @@ func setDefaults(v *viper.Viper) {
 	// Auth defaults
 	v.SetDefault("ACCESS_TOKEN_DURATION", 15*time.Minute)
 	v.SetDefault("REFRESH_TOKEN_DURATION", 7*24*time.Hour)
+
+	// Async email defaults. Credentials and broker URL intentionally have no defaults.
+	v.SetDefault("EMAIL_PROVIDER", "resend")
+	v.SetDefault("EMAIL_WORKER_COUNT", 2)
+	v.SetDefault("EMAIL_WORKER_PREFETCH", 10)
+	v.SetDefault("EMAIL_SEND_TIMEOUT", 10*time.Second)
+	v.SetDefault("OUTBOX_POLL_INTERVAL", 5*time.Second)
+	v.SetDefault("OUTBOX_LEASE_DURATION", time.Minute)
+	v.SetDefault("OUTBOX_BATCH_SIZE", 25)
+}
+
+// ValidateEmailWorker checks configuration that is intentionally optional for the HTTP API.
+func (c *Config) ValidateEmailWorker() error {
+	if c.RabbitMQURL == "" {
+		return fmt.Errorf("RABBITMQ_URL is required")
+	}
+	if c.EmailFrom == "" {
+		return fmt.Errorf("EMAIL_FROM is required")
+	}
+	if c.EmailProvider != "resend" {
+		return fmt.Errorf("EMAIL_PROVIDER must currently be resend")
+	}
+	if c.ResendAPIKey == "" {
+		return fmt.Errorf("RESEND_API_KEY is required for resend")
+	}
+	if c.EmailWorkerCount < 1 {
+		return fmt.Errorf("EMAIL_WORKER_COUNT must be at least 1")
+	}
+	if c.EmailWorkerPrefetch < 1 {
+		return fmt.Errorf("EMAIL_WORKER_PREFETCH must be at least 1")
+	}
+	if c.OutboxPollInterval <= 0 || c.OutboxLeaseDuration <= 0 {
+		return fmt.Errorf("outbox durations must be positive")
+	}
+	if c.OutboxBatchSize < 1 {
+		return fmt.Errorf("OUTBOX_BATCH_SIZE must be at least 1")
+	}
+	return nil
 }
 
 func (c *Config) Validate() error {
