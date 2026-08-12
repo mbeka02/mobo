@@ -55,6 +55,25 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 	return string(ns.UserRole), nil
 }
 
+type EmailOutbox struct {
+	ID             uuid.UUID          `json:"id"`
+	EventType      string             `json:"event_type"`
+	SchemaVersion  int32              `json:"schema_version"`
+	AggregateType  string             `json:"aggregate_type"`
+	AggregateID    string             `json:"aggregate_id"`
+	Recipient      string             `json:"recipient"`
+	Template       string             `json:"template"`
+	Payload        []byte             `json:"payload"`
+	Status         string             `json:"status"`
+	LeaseOwner     *string            `json:"lease_owner"`
+	LeaseExpiresAt pgtype.Timestamptz `json:"lease_expires_at"`
+	AttemptCount   int32              `json:"attempt_count"`
+	LastError      *string            `json:"last_error"`
+	PublishedAt    pgtype.Timestamptz `json:"published_at"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
 type Movie struct {
 	ID          int64              `json:"id"`
 	Title       string             `json:"title"`
