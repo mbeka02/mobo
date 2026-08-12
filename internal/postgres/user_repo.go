@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/mbeka02/ticketing-service/internal/dbgen"
+	"github.com/mbeka02/ticketing-service/internal/email"
 	"github.com/mbeka02/ticketing-service/internal/user"
 )
 
@@ -81,6 +83,9 @@ func (r *userRepo) CreateWithIdentity(ctx context.Context, params user.CreateUse
 		}
 
 		createdUser = fromDatabaseUser(&dbUser)
+		if err := enqueueWelcomeEmail(ctx, q, createdUser); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -113,6 +118,9 @@ func (r *userRepo) CreateLocalWithIdentity(ctx context.Context, email, fullName,
 		}
 
 		createdUser = fromDatabaseUser(&dbUser)
+		if err := enqueueWelcomeEmail(ctx, q, createdUser); err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -120,6 +128,27 @@ func (r *userRepo) CreateLocalWithIdentity(ctx context.Context, email, fullName,
 		return nil, err
 	}
 	return createdUser, nil
+}
+
+func enqueueWelcomeEmail(ctx context.Context, q *dbgen.Queries, user *user.User) error {
+	job := email.NewWelcomeJob(user.ID, user.Email, user.FullName)
+	payload, err := json.Marshal(job)
+	if err != nil {
+		return fmt.Errorf("marshal welcome email job: %w", err)
+	}
+	jobUUID, err := uuid.Parse(job.ID)
+	if err != nil {
+		return fmt.Errorf("parse welcome email job ID: %w", err)
+	}
+	_, err = q.CreateEmailOutbox(ctx, dbgen.CreateEmailOutboxParams{
+		ID: jobUUID, EventType: job.EventType, SchemaVersion: int32(job.SchemaVersion),
+		AggregateType: job.AggregateType, AggregateID: job.AggregateID, Recipient: job.To,
+		Template: job.Template, Payload: payload,
+	})
+	if err != nil {
+		return fmt.Errorf("enqueue welcome email: %w", err)
+	}
+	return nil
 }
 
 func (r *userRepo) LinkIdentity(ctx context.Context, userID uuid.UUID, provider, providerUserID string) error {
