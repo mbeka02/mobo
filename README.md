@@ -40,7 +40,7 @@ flowchart TD
 
 ### Software Architecture (Domain-Driven Design)
 
-I'm trying to  follow a strict **Domain-Driven Design (DDD)** pattern. The codebase is organised by business capabilities (domains) rather than technical layers. Technology adapters (like the HTTP server and Postgres repositories) depend downward on pure domain packages, ensuring business logic is isolated and testable.
+I'm trying to follow a strict **Domain-Driven Design (DDD)** pattern. The codebase is organised by business capabilities (domains) rather than technical layers. Technology adapters (like the HTTP server and Postgres repositories) depend downward on pure domain packages, ensuring business logic is isolated and testable.
 
 ### Project Structure
 
@@ -108,6 +108,7 @@ ticketing-service/
 ### Setup
 
 1. **Clone the repository:**
+
    ```bash
    git clone <repo-url>
    cd ticketing-service
@@ -117,6 +118,7 @@ ticketing-service/
    Create a `.env` file in the root directory mirroring the necessary configuration (Database URI, JWT secret, OAuth credentials, etc.).
 
 3. **Generate database code (if modifying queries):**
+
    ```bash
    sqlc generate
    ```
@@ -223,5 +225,3 @@ RestartSec=5
 [Install]
 WantedBy=multi-user.target
 ```
-
-See [ASYNC_EMAIL_ARCHITECTURE.md](ASYNC_EMAIL_ARCHITECTURE.md) for the complete package design and operational rationale.
