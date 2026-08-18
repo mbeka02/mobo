@@ -39,6 +39,8 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o mobo-${GITHUB_SHA} cmd/server/main.go
           chmod +x mobo-${GITHUB_SHA}
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o email-worker-${GITHUB_SHA} cmd/email-worker/main.go
+          chmod +x email-worker-${GITHUB_SHA}
 
       - name: Build the React app
         working-directory: ./web
@@ -64,8 +66,9 @@ jobs:
           # Create directory if it doesn't exist
           ssh -i ~/.ssh/id_rsa $USER@$HOST mkdir -p $DIR
 
-          # Copy the binary to the releases
+          # Copy the binaries to the releases
           scp -i ~/.ssh/id_rsa mobo-${GITHUB_SHA} $USER@$HOST:$DIR
+          scp -i ~/.ssh/id_rsa email-worker-${GITHUB_SHA} $USER@$HOST:$DIR
 
           # Copy the frontend build
           ssh -i ~/.ssh/id_rsa $USER@$HOST "rm -rf /home/ubuntu/production/web && mkdir -p /home/ubuntu/production/web"
